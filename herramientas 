@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Visual Context Forge · Vanilla Total</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* evita seleccionar texto durante arrastre */
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #eef2f5;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        /* Barra superior */
+        .toolbar {
+            background: white;
+            padding: 12px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #ccc;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 20;
+        }
+        .logo {
+            font-weight: bold;
+            font-size: 1.3rem;
+            margin-right: 20px;
+        }
+        select, button, input {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #aaa;
+            background: #f9f9f9;
+            font-size: 0.85rem;
+        }
+        button {
+            cursor: pointer;
+            background: #e6e9f0;
+            transition: 0.1s;
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        .btn-primary {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+        }
+        .btn-secondary {
+            background: #4b5563;
+            color: white;
+        }
+        /* Layout de dos columnas */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .canvas-area {
+            flex: 3;
+            position: relative;
+            background: #faf9f8;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 25px 25px;
+            overflow: auto;
+            border-right: 1px solid #ccc;
+        }
+        #canvas {
+            position: relative;
+            width: 2000px;
+            height: 1500px;
+            min-width: 100%;
+            min-height: 100%;
+        }
+        .node {
+            position: absolute;
+            width: 240px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+            cursor: grab;
+            border: 1px solid #ddd;
+            transition: box-shadow 0.1s;
+        }
+        .node:active {
+            cursor: grabbing;
+        }
+        .node.dragging {
+            opacity: 0.8;
+            cursor: grabbing;
+        }
+        .node-header {
+            background: #f3f4f6;
+            padding: 8px 12px;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .node-body {
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            max-height: 130px;
+            overflow-y: auto;
+            background: white;
+            line-height: 1.4;
+        }
+        .node-footer {
+            background: #fafafa;
+            padding: 6px 12px;
+            border-top: 1px solid #eaeaea;
+            font-size: 0.7rem;
+            display: flex;
+            justify-content: space-between;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+        .badge {
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-size: 0.65rem;
+        }
+        .right-panel {
+            flex: 1;
+            background: white;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+            border-left: 1px solid #ccc;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        #imagePreview img {
+            max-width: 100%;
+            max-height: 120px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-top: 6px;
+        }
+        #promptOutput {
+            background: #1e1e2f;
+            color: #f0f0f0;
+            padding: 10px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 0.7rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow: auto;
+        }
+        .btn-small {
+            padding: 2px 8px;
+            font-size: 0.7rem;
+        }
+        .status-msg {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: #2c3e50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            z-index: 99;
+        }
+    </style>
+</head>
+<body>
+<div class="toolbar">
+    <div class="logo">🧠 Visual Context Forge · Vanilla</div>
+    <select id="projectSelect"></select>
+    <button id="newProjectBtn">➕ Nuevo proyecto</button>
+    <div style="flex:1"></div>
+    <button id="generatePromptBtn" class="btn-primary">🔄 Generar prompt</button>
+    <button id="copyPromptBtn" class="btn-secondary">📋 Copiar</button>
+</div>
+
+<div class="main-container">
+    <div class="canvas-area">
+        <div id="canvas"></div>
+    </div>
+    <div class="right-panel">
+        <div>
+            <div class="section-title">➕ Añadir nodo</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button data-type="layout_block" class="add-node-btn">📐 Layout</button>
+                <button data-type="note" class="add-node-btn">📝 Nota</button>
+                <button data-type="prompt" class="add-node-btn">🎯 Prompt</button>
+                <button data-type="skill" class="add-node-btn">⚙️ Skill</button>
+                <button data-type="module" class="add-node-btn">🧩 Módulo</button>
+            </div>
+        </div>
+        <div>
+            <div class="section-title">🖼️ Imagen de referencia</div>
+            <input type="file" id="imageUpload" accept="image/*">
+            <div id="imagePreview"></div>
+        </div>
+        <div>
+            <div class="section-title">📄 Prompt generado</div>
+            <pre id="promptOutput">Esperando acción...</pre>
+        </div>
+    </div>
+</div>
+<div id="statusMsg" class="status-msg">✅ Listo</div>
+
+<script>
+    // ---------- 100% Vanilla JS + IndexedDB nativo ----------
+    (function(){
+        // Variables globales
+        let currentProjectId = null;
+        let nodes = [];           // { id, projectId, type, x, y, title, content }
+        let dragEnabled = false;
+        let draggingNode = null;
+        let dragStartX = 0, dragStartY = 0;
+        let nodeStartLeft = 0, nodeStartTop = 0;
+        let currentImageBase64 = null;
+
+        // Elementos DOM
+        const canvasDiv = document.getElementById('canvas');
+        const projectSelect = document.getElementById('projectSelect');
+        const newProjectBtn = document.getElementById('newProjectBtn');
+        const generateBtn = document.getElementById('generatePromptBtn');
+        const copyBtn = document.getElementById('copyPromptBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreviewDiv = document.getElementById('imagePreview');
+        const promptOutput = document.getElementById('promptOutput');
+        const statusSpan = document.getElementById('statusMsg');
+
+        function setStatus(msg, isError=false) {
+            statusSpan.textContent = msg;
+            statusSpan.style.background = isError ? '#b91c1c' : '#2c3e50';
+            setTimeout(() => {
+                if(statusSpan.textContent === msg) statusSpan.textContent = '✅ Listo';
+            }, 2000);
+        }
+
+        // ---------- INDEXEDDB WRAPPER ----------
+        const DB_NAME = 'VisualContextForgeVanillaDB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = (e) => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (e) => {
+                    const dbInst = e.target.result;
+                    if (!dbInst.objectStoreNames.contains('projects')) {
+                        const projStore = dbInst.createObjectStore('projects', { keyPath: 'id', autoIncrement: true });
+                        projStore.createIndex('name', 'name', { unique: false });
+                    }
+                    if (!dbInst.objectStoreNames.contains('nodes')) {
+                        const nodeStore = dbInst.createObjectStore('nodes', { keyPath: 'id', autoIncrement: true });
+                        nodeStore.createIndex('projectId', 'projectId', { unique: false });
+                    }
+                };
+            });
+        }
+
+        async function getAllProjects() {
+            const tx = db.transaction('projects', 'readonly');
+            const store = tx.objectStore('projects');
+            return new Promise((resolve) => {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => resolve([]);
+            });
+        }
+
+        async function addProject(project) {
+            const tx = db.transaction('projects', 'readwrite');
+            const store = tx.objectStore('projects');
+            return new Promise((resolve, reject) => {
+                const req = store.add(project);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function updateProject(id, data) {
+            const tx = db.transaction('projects', 'readwrite');
+            const store = tx.objectStore('projects');
+            const proj = await new Promise((res) => {
+                const req = store.get(id);
+                req.onsuccess = () => res(req.result);
+            });
+            if (!proj) return;
+            Object.assign(proj, data);
+            store.put(proj);
+        }
+
+        async function getProject(id) {
+            const tx = db.transaction('projects', 'readonly');
+            const store = tx.objectStore('projects');
+            return new Promise((res) => {
+                const req = store.get(id);
+                req.onsuccess = () => res(req.result);
+            });
+        }
+
+        async function getNodesByProject(projectId) {
+            const tx = db.transaction('nodes', 'readonly');
+            const index = tx.objectStore('nodes').index('projectId');
+            return new Promise((resolve) => {
+                const req = index.getAll(projectId);
+                req.onsuccess = () => resolve(req.result || []);
+            });
+        }
+
+        async function saveNode(node) {
+            const tx = db.transaction('nodes', 'readwrite');
+            const store = tx.objectStore('nodes');
+            if (node.id) {
+                store.put(node);
+            } else {
+                store.add(node);
+            }
+            return new Promise((resolve) => {
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        async function deleteNodeById(id) {
+            const tx = db.transaction('nodes', 'readwrite');
+            const store = tx.objectStore('nodes');
+            store.delete(id);
+        }
+
+        // ---------- Lógica de renderizado ----------
+        function renderCanvas() {
+            canvasDiv.innerHTML = '';
+            for (const node of nodes) {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'node';
+                nodeDiv.style.left = node.x + 'px';
+                nodeDiv.style.top = node.y + 'px';
+                nodeDiv.setAttribute('data-id', node.id);
+                nodeDiv.innerHTML = `
+                    <div class="node-header">
+                        <span>${getIcon(node.type)} ${escapeHtml(node.title)}</span>
+                        <span class="badge">${node.type.replace('_',' ')}</span>
+                    </div>
+                    <div class="node-body">${escapeHtml(node.content).substring(0, 120)}${node.content.length > 120 ? '…' : ''}</div>
+                    <div class="node-footer">
+                        <button class="edit-node" data-id="${node.id}">✏️ Editar</button>
+                        <button class="delete-node" data-id="${node.id}">🗑️ Eliminar</button>
+                    </div>
+                `;
+                // Eventos de arrastre (nativo)
+                nodeDiv.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('edit-node') || e.target.classList.contains('delete-node')) return;
+                    dragEnabled = true;
+                    draggingNode = nodeDiv;
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+                    nodeStartLeft = parseInt(nodeDiv.style.left);
+                    nodeStartTop = parseInt(nodeDiv.style.top);
+                    nodeDiv.style.cursor = 'grabbing';
+                    nodeDiv.classList.add('dragging');
+                    e.preventDefault();
+                });
+                canvasDiv.appendChild(nodeDiv);
+            }
+            // Agregar event listeners a los botones después de renderizar
+            document.querySelectorAll('.edit-node').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(btn.getAttribute('data-id'));
+                    const node = nodes.find(n => n.id === id);
+                    if (node) editNodeModal(node);
+                });
+            });
+            document.querySelectorAll('.delete-node').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(btn.getAttribute('data-id'));
+                    await deleteNodeById(id);
+                    nodes = nodes.filter(n => n.id !== id);
+                    renderCanvas();
+                    setStatus('Nodo eliminado');
+                });
+            });
+        }
+
+        function getIcon(type) {
+            const map = { layout_block:'📐', note:'📝', prompt:'🎯', skill:'⚙️', module:'🧩' };
+            return map[type] || '📌';
+        }
+
+        function escapeHtml(str) {
+            if(!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if(m === '&') return '&amp;';
+                if(m === '<') return '&lt;';
+                if(m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        async function editNodeModal(node) {
+            const newTitle = prompt('Editar título:', node.title);
+            if (newTitle === null) return;
+            const newContent = prompt('Editar contenido:', node.content);
+            if (newContent === null) return;
+            node.title = newTitle;
+            node.content = newContent;
+            await saveNode(node);
+            // actualizar array local
+            const idx = nodes.findIndex(n => n.id === node.id);
+            if (idx !== -1) nodes[idx] = node;
+            renderCanvas();
+            setStatus('Nodo actualizado');
+        }
+
+        async function addNode(type) {
+            if (!currentProjectId) return;
+            const newNode = {
+                projectId: currentProjectId,
+                type: type,
+                x: 50 + Math.random() * 300,
+                y: 50 + Math.random() * 300,
+                title: `Nuevo ${type}`,
+                content: 'Edita este contenido...'
+            };
+            const tx = db.transaction('nodes', 'readwrite');
+            const store = tx.objectStore('nodes');
+            const req = store.add(newNode);
+            req.onsuccess = async function() {
+                newNode.id = req.result;
+                nodes.push(newNode);
+                renderCanvas();
+                setStatus(`Nodo ${type} añadido`);
+            };
+        }
+
+        // Manejo de arrastre global
+        document.addEventListener('mousemove', (e) => {
+            if (!dragEnabled || !draggingNode) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            const newLeft = nodeStartLeft + dx;
+            const newTop = nodeStartTop + dy;
+            draggingNode.style.left = newLeft + 'px';
+            draggingNode.style.top = newTop + 'px';
+        });
+        document.addEventListener('mouseup', async (e) => {
+            if (!dragEnabled || !draggingNode) return;
+            const id = parseInt(draggingNode.getAttribute('data-id'));
+            const node = nodes.find(n => n.id === id);
+            if (node) {
+                node.x = parseInt(draggingNode.style.left);
+                node.y = parseInt(draggingNode.style.top);
+                await saveNode(node);
+            }
+            draggingNode.style.cursor = '';
+            draggingNode.classList.remove('dragging');
+            dragEnabled = false;
+            draggingNode = null;
+            setStatus('Posición guardada');
+        });
+
+        // ---------- Proyectos ----------
+        async function loadProjectList() {
+            const projects = await getAllProjects();
+            projectSelect.innerHTML = '';
+            for (const p of projects) {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                projectSelect.appendChild(opt);
+            }
+            if (projects.length === 0) {
+                // crear demo
+                const demoId = await addProject({ name: 'Demo: Landing AI', updatedAt: new Date().toISOString() });
+                await createDemoNodes(demoId);
+                currentProjectId = demoId;
+                await loadNodes(demoId);
+            } else {
+                currentProjectId = projects[0].id;
+                await loadNodes(currentProjectId);
+                const proj = await getProject(currentProjectId);
+                if (proj && proj.imageBase64) {
+                    currentImageBase64 = proj.imageBase64;
+                    showImagePreview(currentImageBase64);
+                }
+            }
+            projectSelect.value = currentProjectId;
+        }
+
+        async function createDemoNodes(projId) {
+            const demoNodes = [
+                { projectId: projId, type:'layout_block', x:60, y:60, title:'Navbar', content:'Logo + enlaces principales' },
+                { projectId: projId, type:'layout_block', x:60, y:220, title:'Hero', content:'Título, subtítulo, botón CTA' },
+                { projectId: projId, type:'layout_block', x:60, y:380, title:'Features Grid', content:'3 columnas con íconos' },
+                { projectId: projId, type:'note', x:400, y:80, title:'Nota de diseño', content:'Paleta: azul oscuro + grises claros, tipografía Inter' },
+                { projectId: projId, type:'prompt', x:400, y:240, title:'Prompt IA', content:'Generar landing page moderna, animaciones suaves, formulario de contacto.' },
+                { projectId: projId, type:'skill', x:400, y:400, title:'Skill Responsive', content:'Mobile-first, breakpoints 640px, 1024px.' }
+            ];
+            for (const nd of demoNodes) {
+                const tx = db.transaction('nodes', 'readwrite');
+                const store = tx.objectStore('nodes');
+                store.add(nd);
+            }
+        }
+
+        async function loadNodes(projectId) {
+            nodes = await getNodesByProject(projectId);
+            renderCanvas();
+        }
+
+        async function switchProject() {
+            const newId = parseInt(projectSelect.value);
+            if (newId === currentProjectId) return;
+            currentProjectId = newId;
+            await loadNodes(currentProjectId);
+            const proj = await getProject(currentProjectId);
+            if (proj && proj.imageBase64) {
+                currentImageBase64 = proj.imageBase64;
+                showImagePreview(currentImageBase64);
+            } else {
+                currentImageBase64 = null;
+                imagePreviewDiv.innerHTML = '';
+            }
+            setStatus(`Proyecto cambiado a ${proj.name}`);
+        }
+
+        async function newProject() {
+            const name = prompt('Nombre del nuevo proyecto:');
+            if (!name) return;
+            const newId = await addProject({ name, updatedAt: new Date().toISOString() });
+            currentProjectId = newId;
+            nodes = [];
+            renderCanvas();
+            currentImageBase64 = null;
+            imagePreviewDiv.innerHTML = '';
+            await loadProjectList();
+            projectSelect.value = newId;
+            setStatus(`Proyecto "${name}" creado`);
+        }
+
+        // Imagen referencia
+        function showImagePreview(b64) {
+            if (b64) {
+                imagePreviewDiv.innerHTML = `<img src="${b64}" alt="referencia">`;
+            } else {
+                imagePreviewDiv.innerHTML = '';
+            }
+        }
+
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                currentImageBase64 = ev.target.result;
+                showImagePreview(currentImageBase64);
+                if (currentProjectId) {
+                    await updateProject(currentProjectId, { imageBase64: currentImageBase64 });
+                }
+                setStatus('Imagen guardada');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Generar prompt
+        function generatePrompt() {
+            const layoutBlocks = nodes.filter(n => n.type === 'layout_block').map(n => `- ${n.title}: ${n.content}`).join('\n');
+            const notes = nodes.filter(n => n.type === 'note').map(n => `📝 ${n.title}\n${n.content}`).join('\n\n');
+            const prompts = nodes.filter(n => n.type === 'prompt').map(n => `🎯 ${n.title}\n${n.content}`).join('\n\n');
+            const skills = nodes.filter(n => n.type === 'skill').map(n => `⚙️ ${n.title}\n${n.content}`).join('\n');
+            let imgSection = '';
+            if (currentImageBase64) {
+                imgSection = `\n\n[IMAGEN DE REFERENCIA]: ${currentImageBase64.substring(0, 80)}... (usa esta imagen como guía visual)`;
+            }
+            const finalPrompt = `# VISUAL CONTEXT FOR AI
+
+## ESTRUCTURA VISUAL
+${layoutBlocks || 'Sin bloques'}
+
+## NOTAS DE DISEÑO
+${notes || 'Ninguna'}
+
+## PROMPTS
+${prompts || 'Ninguno'}
+
+## SKILLS TÉCNICAS
+${skills || 'No especificadas'}
+${imgSection}
+
+---
+INSTRUCCIÓN: Genera código HTML/CSS moderno, responsivo, respetando la estructura visual y skills.`;
+            promptOutput.textContent = finalPrompt;
+            return finalPrompt;
+        }
+
+        async function copyPromptToClipboard() {
+            const text = generatePrompt();
+            try {
+                await navigator.clipboard.writeText(text);
+                setStatus('✅ Prompt copiado');
+            } catch(err) {
+                setStatus('❌ Error al copiar', true);
+            }
+        }
+
+        // Inicialización
+        async function init() {
+            try {
+                await openDB();
+                await loadProjectList();
+                // Eventos UI
+                document.querySelectorAll('.add-node-btn').forEach(btn => {
+                    btn.addEventListener('click', () => addNode(btn.getAttribute('data-type')));
+                });
+                newProjectBtn.addEventListener('click', newProject);
+                generateBtn.addEventListener('click', generatePrompt);
+                copyBtn.addEventListener('click', copyPromptToClipboard);
+                projectSelect.addEventListener('change', switchProject);
+                setStatus('Aplicación lista');
+            } catch(err) {
+                console.error(err);
+                setStatus('Error al iniciar: ' + err.message, true);
+                document.body.innerHTML = `<div style="padding:20px;color:red;">Error crítico: ${err.message}<br>Intente recargar o usar otro navegador.</div>`;
+            }
+        }
+        init();
+    })();
+</script>
+</body>
+</html>
