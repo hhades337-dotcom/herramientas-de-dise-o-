@@ -2,141 +2,335 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VPO Studio</title>  <script src="https://cdn.tailwindcss.com"></script>  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>  <style>
+  <title>VPO Studio Ultimate MVP</title>  <script src="https://cdn.tailwindcss.com"></script>  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>  <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      background: #070b14;
       overflow: hidden;
-      font-family: Arial, sans-serif;
+      background: #04070f;
+      font-family: Inter, Arial, sans-serif;
+      color: white;
     }
 
     .grid-bg {
       background-image:
-        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
       background-size: 40px 40px;
+    }
+
+    .glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-scroll::-webkit-scrollbar,
+    .panel-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-thumb,
+    .panel-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.1);
+      border-radius: 999px;
     }
   </style></head>
 <body>
-  <div id="root"></div>  <script type="text/babel">
-    const { useState } = React;
+<div id="root"></div><script type="text/babel">
+const { useState, useEffect } = React;
 
-    function App() {
-      const [blocks, setBlocks] = useState([
-        {
-          id: 1,
-          title: 'Sidebar',
-          x: 40,
-          y: 80,
-          w: 220,
-          h: 300,
-          color: 'rgba(99,102,241,0.25)'
-        },
-        {
-          id: 2,
-          title: 'Main Chat Area',
-          x: 300,
-          y: 80,
-          w: 520,
-          h: 320,
-          color: 'rgba(16,185,129,0.25)'
-        },
-        {
-          id: 3,
-          title: 'Floating Player',
-          x: 860,
-          y: 250,
-          w: 240,
-          h: 140,
-          color: 'rgba(236,72,153,0.25)'
+function App() {
+
+  const [selectedModule, setSelectedModule] = useState('Workspace');
+  const [selectedAI, setSelectedAI] = useState('Claude');
+  const [zoom, setZoom] = useState(100);
+  const [notes, setNotes] = useState(localStorage.getItem('vpo_notes') || '');
+  const [projectName, setProjectName] = useState('Spotify Futuristic Chat');
+
+  const [timeline, setTimeline] = useState([
+    'Sidebar simplified for immersive UX.',
+    'Chat focus expanded for central interaction.',
+    'Dark neon visual atmosphere selected.',
+    'Floating music player repositioned.'
+  ]);
+
+  const [references, setReferences] = useState([]);
+  const [sketches, setSketches] = useState([]);
+
+  const [blocks, setBlocks] = useState([
+    {
+      id: 1,
+      title: 'Sidebar Navigation',
+      x: 80,
+      y: 120,
+      w: 240,
+      h: 400,
+      color: 'rgba(99,102,241,0.22)',
+      type: 'navigation'
+    },
+    {
+      id: 2,
+      title: 'Main Chat Experience',
+      x: 360,
+      y: 120,
+      w: 620,
+      h: 420,
+      color: 'rgba(16,185,129,0.22)',
+      type: 'experience'
+    },
+    {
+      id: 3,
+      title: 'Floating Music Player',
+      x: 1040,
+      y: 330,
+      w: 260,
+      h: 180,
+      color: 'rgba(236,72,153,0.22)',
+      type: 'floating'
+    }
+  ]);
+
+  const [dragging, setDragging] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem('vpo_notes', notes);
+  }, [notes]);
+
+  const modules = [
+    'Workspace',
+    'Visual Prompt',
+    'Sketch Upload',
+    'References',
+    'Documentation',
+    'Prompt Studio',
+    'Project Memory',
+    'AI Orchestrator',
+    'Export Center',
+    'Settings'
+  ];
+
+  const addBlock = () => {
+    const id = Date.now();
+
+    setBlocks([
+      ...blocks,
+      {
+        id,
+        title: 'New Interface Zone',
+        x: 200,
+        y: 200,
+        w: 260,
+        h: 180,
+        color: 'rgba(59,130,246,0.22)',
+        type: 'custom'
+      }
+    ]);
+
+    setTimeline([
+      'New interface block created automatically.',
+      ...timeline
+    ]);
+  };
+
+  const startDrag = (id) => {
+    setDragging(id);
+  };
+
+  const stopDrag = () => {
+    setDragging(null);
+  };
+
+  const handleMove = (e) => {
+    if (!dragging) return;
+
+    setBlocks(prev => prev.map(block => {
+      if (block.id === dragging) {
+        return {
+          ...block,
+          x: e.clientX - block.w / 2,
+          y: e.clientY - 80
+        };
+      }
+      return block;
+    }));
+  };
+
+  const handleImageUpload = (e, type) => {
+    const files = Array.from(e.target.files);
+
+    files.forEach(file => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        const item = {
+          id: Date.now() + Math.random(),
+          src: event.target.result,
+          name: file.name
+        };
+
+        if (type === 'reference') {
+          setReferences(prev => [...prev, item]);
+        } else {
+          setSketches(prev => [...prev, item]);
         }
-      ]);
-
-      const [dragging, setDragging] = useState(null);
-
-      const startDrag = (id) => {
-        setDragging(id);
       };
 
-      const stopDrag = () => {
-        setDragging(null);
-      };
+      reader.readAsDataURL(file);
+    });
+  };
 
-      const onMove = (e) => {
-        if (!dragging) return;
+  return (
+    <div
+      className="w-screen h-screen flex"
+      onMouseMove={handleMove}
+      onMouseUp={stopDrag}
+    >
 
-        setBlocks(prev => prev.map(block => {
-          if (block.id === dragging) {
-            return {
-              ...block,
-              x: e.clientX - block.w / 2,
-              y: e.clientY - 40
-            };
-          }
-          return block;
-        }));
-      };
+      {/* Sidebar */}
+      <aside className="w-80 bg-[#050912] border-r border-white/10 flex flex-col">
 
-      return (
-        <div
-          className="w-screen h-screen flex text-white"
-          onMouseMove={onMove}
-          onMouseUp={stopDrag}
-        >
-          <div className="w-72 bg-slate-950 border-r border-white/10 flex flex-col">
-            <div className="p-6 border-b border-white/10">
-              <h1 className="text-3xl font-bold">VPO Studio</h1>
-              <p className="text-gray-400 mt-2 text-sm">
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight">
+                VPO Studio
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">
                 Visual Prompt Orchestrator
               </p>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 space-y-3">
-              {['Workspace','Visual Prompt','Sketch Upload','References','AI Orchestrator','Documentation','Prompt Studio','Export Center'].map(item => (
-                <button
-                  key={item}
-                  className="w-full text-left px-4 py-3 rounded-2xl bg-white/5 hover:bg-indigo-500/20 transition"
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
+            <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+          </div>
+        </div>
+
+        <div className="p-4 border-b border-white/10">
+          <input
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            className="w-full rounded-2xl bg-white/5 border border-white/10 p-4 outline-none"
+          />
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 space-y-3 sidebar-scroll">
+          {modules.map(module => (
+            <button
+              key={module}
+              onClick={() => setSelectedModule(module)}
+              className={`w-full text-left px-5 py-4 rounded-2xl transition-all ${selectedModule === module ? 'bg-indigo-500/20 border border-indigo-400/30' : 'bg-white/5 border border-white/5 hover:bg-white/10'}`}
+            >
+              <div className="font-medium">{module}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="p-4 border-t border-white/10 text-xs text-gray-500">
+          Open Source Experimental Platform
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="flex-1 flex flex-col overflow-hidden bg-[#04070f]">
+
+        {/* Topbar */}
+        <header className="h-20 border-b border-white/10 bg-[#070d18] flex items-center justify-between px-8">
+
+          <div>
+            <h2 className="text-2xl font-bold">
+              {projectName}
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              AI-native visual thinking workspace
+            </p>
           </div>
 
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="h-16 border-b border-white/10 bg-slate-900 flex items-center justify-between px-6">
-              <h2 className="text-xl font-semibold">AI Intent Workspace</h2>
+          <div className="flex items-center gap-4">
 
-              <div className="flex gap-3">
-                <button className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition">
-                  Save
-                </button>
+            <div className="glass rounded-2xl px-4 py-2 flex items-center gap-3">
+              <span className="text-sm text-gray-400">Zoom</span>
 
-                <button className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">
-                  Export
-                </button>
-              </div>
+              <input
+                type="range"
+                min="50"
+                max="150"
+                value={zoom}
+                onChange={(e) => setZoom(e.target.value)}
+              />
             </div>
 
-            <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
-              <div className="col-span-8 bg-slate-900 border border-white/10 rounded-3xl p-5 flex flex-col">
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      Visual Structure Workspace
-                    </h3>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Drag visual intent blocks.
-                    </p>
-                  </div>
+            <button
+              onClick={addBlock}
+              className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 transition font-medium"
+            >
+              Add Interface Block
+            </button>
+
+            <button className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 transition">
+              Save Draft
+            </button>
+          </div>
+        </header>
+
+        {/* Body */}
+        <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
+
+          {/* Canvas */}
+          <section className="col-span-8 flex flex-col gap-6 overflow-hidden">
+
+            <div className="glass rounded-[30px] p-5 flex-1 flex flex-col overflow-hidden">
+
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-xl font-bold">
+                    Visual Structure Workspace
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Organize visual intention, references and interface thinking.
+                  </p>
                 </div>
 
-                <div className="relative flex-1 rounded-3xl border border-dashed border-white/10 overflow-hidden grid-bg bg-[#09101d]">
+                <div className="flex gap-3">
+
+                  <label className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 cursor-pointer transition text-sm">
+                    Upload References
+                    <input
+                      type="file"
+                      multiple
+                      hidden
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'reference')}
+                    />
+                  </label>
+
+                  <label className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 cursor-pointer transition text-sm">
+                    Upload Sketches
+                    <input
+                      type="file"
+                      multiple
+                      hidden
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'sketch')}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="relative flex-1 rounded-[28px] overflow-hidden border border-white/10 grid-bg bg-[#07101b]">
+
+                <div
+                  className="absolute inset-0"
+                  style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left' }}
+                >
+
                   {blocks.map(block => (
                     <div
                       key={block.id}
                       onMouseDown={() => startDrag(block.id)}
-                      className="absolute rounded-3xl border border-white/20 backdrop-blur-lg cursor-grab shadow-2xl"
+                      className="absolute rounded-[28px] border border-white/10 backdrop-blur-xl shadow-2xl cursor-grab hover:scale-[1.01] transition-all"
                       style={{
                         left: block.x,
                         top: block.y,
@@ -145,56 +339,187 @@
                         background: block.color
                       }}
                     >
-                      <div className="p-4 h-full flex flex-col">
-                        <div className="font-medium mb-3">
-                          {block.title}
+
+                      <div className="p-5 h-full flex flex-col">
+
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <div className="font-bold text-lg">
+                              {block.title}
+                            </div>
+
+                            <div className="text-xs text-gray-300 mt-1 uppercase tracking-wider">
+                              {block.type}
+                            </div>
+                          </div>
+
+                          <div className="w-3 h-3 rounded-full bg-white/60"></div>
                         </div>
 
-                        <div className="flex-1 rounded-2xl border border-white/10 bg-black/20 flex items-center justify-center text-sm text-center px-4 text-gray-300">
-                          Drag this block to reorganize the project structure.
+                        <div className="flex-1 rounded-2xl border border-white/10 bg-black/20 flex items-center justify-center text-center p-4 text-sm text-gray-300">
+                          Visual intention area
+
+Move and organize this block according to the project flow.
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
+            </div>
 
-              <div className="col-span-4 flex flex-col gap-6 overflow-auto">
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-6">
-                  <h3 className="text-lg font-semibold mb-4">AI Orchestrator</h3>
-
-                  <div className="space-y-3">
-                    {['Claude','ChatGPT','Cursor','Gemini','Devin'].map(ai => (
-                      <button
-                        key={ai}
-                        className="w-full text-left p-4 rounded-2xl bg-white/5 hover:bg-indigo-500/20 transition"
-                      >
-                        <div className="font-medium">{ai}</div>
-                        <div className="text-sm text-gray-400 mt-1">
-                          AI export profile
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-6">
-                  <h3 className="text-lg font-semibold mb-4">Sketch Interpretation</h3>
-
-                  <div className="h-56 rounded-3xl border border-dashed border-white/10 bg-black/20 flex flex-col items-center justify-center text-center p-6">
-                    <div className="text-5xl mb-4">✏️</div>
-                    <p className="text-sm text-gray-300">
-                      Upload napkin sketches and visual ideas.
-                    </p>
-                  </div>
+            {/* Timeline */}
+            <div className="glass rounded-[30px] p-6 h-72 overflow-auto panel-scroll">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-xl font-bold">
+                    AI Documentation Timeline
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Automatic project memory and evolution.
+                  </p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script></body>
+              <div className="space-y-4">
+                {timeline.map((item, index) => (
+                  <div
+                    key={index}
+                    className="glass rounded-2xl p-4"
+                  >
+                    <div className="text-xs text-indigo-300 mb-2 uppercase tracking-wider">
+                      AI Documentation Engine
+                    </div>
+
+                    <div>
+                      {item}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Right Panel */}
+          <aside className="col-span-4 flex flex-col gap-6 overflow-auto panel-scroll">
+
+            {/* AI */}
+            <div className="glass rounded-[30px] p-6">
+              <h3 className="text-xl font-bold mb-5">
+                AI Orchestrator
+              </h3>
+
+              <div className="space-y-3">
+                {['Claude','ChatGPT','Cursor','Gemini','Devin'].map(ai => (
+                  <button
+                    key={ai}
+                    onClick={() => setSelectedAI(ai)}
+                    className={`w-full text-left rounded-2xl p-4 transition-all ${selectedAI === ai ? 'bg-indigo-500/20 border border-indigo-400/30' : 'bg-white/5 border border-white/5 hover:bg-white/10'}`}
+                  >
+                    <div className="font-semibold">
+                      {ai}
+                    </div>
+
+                    <div className="text-sm text-gray-400 mt-1">
+                      Specialized export workflow
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* References */}
+            <div className="glass rounded-[30px] p-6">
+              <h3 className="text-xl font-bold mb-5">
+                Visual References
+              </h3>
+
+              <div className="grid grid-cols-2 gap-3 max-h-64 overflow-auto panel-scroll">
+                {references.length === 0 && (
+                  <div className="col-span-2 text-sm text-gray-400 text-center py-10 border border-dashed border-white/10 rounded-2xl">
+                    Upload references from Pinterest, Figma or screenshots.
+                  </div>
+                )}
+
+                {references.map(ref => (
+                  <img
+                    key={ref.id}
+                    src={ref.src}
+                    className="w-full h-32 object-cover rounded-2xl border border-white/10"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Sketches */}
+            <div className="glass rounded-[30px] p-6">
+              <h3 className="text-xl font-bold mb-5">
+                Sketch Interpretation
+              </h3>
+
+              <div className="grid grid-cols-2 gap-3 max-h-64 overflow-auto panel-scroll">
+                {sketches.length === 0 && (
+                  <div className="col-span-2 text-sm text-gray-400 text-center py-10 border border-dashed border-white/10 rounded-2xl">
+                    Upload napkin sketches or tablet drawings.
+                  </div>
+                )}
+
+                {sketches.map(sketch => (
+                  <img
+                    key={sketch.id}
+                    src={sketch.src}
+                    className="w-full h-32 object-cover rounded-2xl border border-white/10"
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="glass rounded-[30px] p-6 flex flex-col">
+              <h3 className="text-xl font-bold mb-5">
+                Thought Capture
+              </h3>
+
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full h-48 rounded-[24px] bg-black/20 border border-white/10 p-5 outline-none resize-none text-sm"
+                placeholder="Write ideas before inspiration disappears..."
+              />
+            </div>
+
+            {/* Export */}
+            <div className="glass rounded-[30px] p-6">
+              <h3 className="text-xl font-bold mb-5">
+                Export Center
+              </h3>
+
+              <div className="space-y-3">
+
+                <button className="w-full text-left px-5 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 transition">
+                  Export Full Package to {selectedAI}
+                </button>
+
+                <button className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition">
+                  Export Documentation
+                </button>
+
+                <button className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition">
+                  Export Visual Prompt
+                </button>
+
+                <button className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition">
+                  Generate AI Context Package
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script></body>
 </html>
