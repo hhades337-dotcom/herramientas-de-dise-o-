@@ -58,6 +58,8 @@ function App() {
     'Floating music player repositioned.'
   ]);
 
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+
   const [references, setReferences] = useState([]);
   const [sketches, setSketches] = useState([]);
 
@@ -112,6 +114,100 @@ function App() {
     'Export Center',
     'Settings'
   ];
+
+  const generateVisualPrompt = () => {
+    const blockDescriptions = blocks.map(block => {
+      return `- ${block.title} (${block.type}) positioned at X:${Math.round(block.x)} Y:${Math.round(block.y)} with dimensions ${block.w}x${block.h}`;
+    }).join('
+');
+
+    const referencesText = references.length > 0
+      ? `The project includes ${references.length} visual reference images uploaded by the user.`
+      : 'No visual references uploaded yet.';
+
+    const sketchesText = sketches.length > 0
+      ? `The project includes ${sketches.length} conceptual sketches uploaded by the user.`
+      : 'No sketches uploaded yet.';
+
+    const prompt = `
+PROJECT NAME:
+${projectName}
+
+VISUAL OBJECTIVE:
+Create a futuristic modern interface with immersive UX and AI-native interaction.
+
+VISUAL STRUCTURE:
+${blockDescriptions}
+
+VISUAL REFERENCES:
+${referencesText}
+
+SKETCH ANALYSIS:
+${sketchesText}
+
+USER NOTES:
+${notes || 'No additional notes.'}
+
+AI EXECUTION INSTRUCTIONS:
+Build a production-level interface respecting the visual hierarchy and workspace structure defined above. Focus on cinematic UI, responsive design, immersive interaction, premium animations and clean modern architecture.
+
+TARGET AI:
+${selectedAI}
+
+EXPORT MODE:
+Visual Prompt Package + Documentation + UX Intent.
+    `;
+
+    setGeneratedPrompt(prompt);
+
+    setTimeline(prev => [
+      `AI Visual Prompt Package generated for ${selectedAI}.`,
+      ...prev
+    ]);
+  };
+
+  const copyPrompt = async () => {
+    if (!generatedPrompt) return;
+
+    await navigator.clipboard.writeText(generatedPrompt);
+
+    setTimeline(prev => [
+      'Generated prompt copied to clipboard.',
+      ...prev
+    ]);
+  };
+
+  const exportProject = () => {
+    const payload = {
+      projectName,
+      selectedAI,
+      notes,
+      blocks,
+      timeline,
+      generatedPrompt,
+      referencesCount: references.length,
+      sketchesCount: sketches.length,
+      exportedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([
+      JSON.stringify(payload, null, 2)
+    ], { type: 'application/json' });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${projectName.replace(/\s+/g, '_')}_vpo_export.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    setTimeline(prev => [
+      'Full project exported successfully.',
+      ...prev
+    ]);
+  };
 
   const addBlock = () => {
     const id = Date.now();
@@ -496,16 +592,25 @@ Move and organize this block according to the project flow.
 
               <div className="space-y-3">
 
-                <button className="w-full text-left px-5 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 transition">
-                  Export Full Package to {selectedAI}
+                <button
+                  onClick={generateVisualPrompt}
+                  className="w-full text-left px-5 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 transition"
+                >
+                  Generate Visual Prompt for {selectedAI}
                 </button>
 
-                <button className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition">
-                  Export Documentation
+                <button
+                  onClick={copyPrompt}
+                  className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition"
+                >
+                  Copy Generated Prompt
                 </button>
 
-                <button className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition">
-                  Export Visual Prompt
+                <button
+                  onClick={exportProject}
+                  className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition"
+                >
+                  Export Full Project JSON
                 </button>
 
                 <button className="w-full text-left px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 transition">
@@ -513,6 +618,28 @@ Move and organize this block according to the project flow.
                 </button>
               </div>
             </div>
+          {generatedPrompt && (
+              <div className="glass rounded-[30px] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold">
+                    Generated AI Visual Prompt
+                  </h3>
+
+                  <button
+                    onClick={copyPrompt}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition text-sm"
+                  >
+                    Copy
+                  </button>
+                </div>
+
+                <textarea
+                  value={generatedPrompt}
+                  readOnly
+                  className="w-full h-80 rounded-[24px] bg-black/30 border border-white/10 p-5 outline-none resize-none text-sm text-gray-200"
+                />
+              </div>
+            )}
           </aside>
         </div>
       </main>
