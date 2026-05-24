@@ -1,1 +1,200 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPO Studio</title>  <script src="https://cdn.tailwindcss.com"></script>  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>  <style>
+    body {
+      margin: 0;
+      background: #070b14;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
 
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+  </style></head>
+<body>
+  <div id="root"></div>  <script type="text/babel">
+    const { useState } = React;
+
+    function App() {
+      const [blocks, setBlocks] = useState([
+        {
+          id: 1,
+          title: 'Sidebar',
+          x: 40,
+          y: 80,
+          w: 220,
+          h: 300,
+          color: 'rgba(99,102,241,0.25)'
+        },
+        {
+          id: 2,
+          title: 'Main Chat Area',
+          x: 300,
+          y: 80,
+          w: 520,
+          h: 320,
+          color: 'rgba(16,185,129,0.25)'
+        },
+        {
+          id: 3,
+          title: 'Floating Player',
+          x: 860,
+          y: 250,
+          w: 240,
+          h: 140,
+          color: 'rgba(236,72,153,0.25)'
+        }
+      ]);
+
+      const [dragging, setDragging] = useState(null);
+
+      const startDrag = (id) => {
+        setDragging(id);
+      };
+
+      const stopDrag = () => {
+        setDragging(null);
+      };
+
+      const onMove = (e) => {
+        if (!dragging) return;
+
+        setBlocks(prev => prev.map(block => {
+          if (block.id === dragging) {
+            return {
+              ...block,
+              x: e.clientX - block.w / 2,
+              y: e.clientY - 40
+            };
+          }
+          return block;
+        }));
+      };
+
+      return (
+        <div
+          className="w-screen h-screen flex text-white"
+          onMouseMove={onMove}
+          onMouseUp={stopDrag}
+        >
+          <div className="w-72 bg-slate-950 border-r border-white/10 flex flex-col">
+            <div className="p-6 border-b border-white/10">
+              <h1 className="text-3xl font-bold">VPO Studio</h1>
+              <p className="text-gray-400 mt-2 text-sm">
+                Visual Prompt Orchestrator
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-auto p-4 space-y-3">
+              {['Workspace','Visual Prompt','Sketch Upload','References','AI Orchestrator','Documentation','Prompt Studio','Export Center'].map(item => (
+                <button
+                  key={item}
+                  className="w-full text-left px-4 py-3 rounded-2xl bg-white/5 hover:bg-indigo-500/20 transition"
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="h-16 border-b border-white/10 bg-slate-900 flex items-center justify-between px-6">
+              <h2 className="text-xl font-semibold">AI Intent Workspace</h2>
+
+              <div className="flex gap-3">
+                <button className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition">
+                  Save
+                </button>
+
+                <button className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">
+                  Export
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 grid grid-cols-12 gap-6 p-6 overflow-hidden">
+              <div className="col-span-8 bg-slate-900 border border-white/10 rounded-3xl p-5 flex flex-col">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      Visual Structure Workspace
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Drag visual intent blocks.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative flex-1 rounded-3xl border border-dashed border-white/10 overflow-hidden grid-bg bg-[#09101d]">
+                  {blocks.map(block => (
+                    <div
+                      key={block.id}
+                      onMouseDown={() => startDrag(block.id)}
+                      className="absolute rounded-3xl border border-white/20 backdrop-blur-lg cursor-grab shadow-2xl"
+                      style={{
+                        left: block.x,
+                        top: block.y,
+                        width: block.w,
+                        height: block.h,
+                        background: block.color
+                      }}
+                    >
+                      <div className="p-4 h-full flex flex-col">
+                        <div className="font-medium mb-3">
+                          {block.title}
+                        </div>
+
+                        <div className="flex-1 rounded-2xl border border-white/10 bg-black/20 flex items-center justify-center text-sm text-center px-4 text-gray-300">
+                          Drag this block to reorganize the project structure.
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="col-span-4 flex flex-col gap-6 overflow-auto">
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-6">
+                  <h3 className="text-lg font-semibold mb-4">AI Orchestrator</h3>
+
+                  <div className="space-y-3">
+                    {['Claude','ChatGPT','Cursor','Gemini','Devin'].map(ai => (
+                      <button
+                        key={ai}
+                        className="w-full text-left p-4 rounded-2xl bg-white/5 hover:bg-indigo-500/20 transition"
+                      >
+                        <div className="font-medium">{ai}</div>
+                        <div className="text-sm text-gray-400 mt-1">
+                          AI export profile
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-6">
+                  <h3 className="text-lg font-semibold mb-4">Sketch Interpretation</h3>
+
+                  <div className="h-56 rounded-3xl border border-dashed border-white/10 bg-black/20 flex flex-col items-center justify-center text-center p-6">
+                    <div className="text-5xl mb-4">✏️</div>
+                    <p className="text-sm text-gray-300">
+                      Upload napkin sketches and visual ideas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script></body>
+  </html>
