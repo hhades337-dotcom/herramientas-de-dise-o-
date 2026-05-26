@@ -3,548 +3,568 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VPO Studio - Visual Prompt Orchestrator</title>
-    <!-- Tailwind CSS + Font Awesome + SortableJS -->
+    <title>VPO Studio Canvas Libre - Visual Prompt Geométrico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
-        /* Personalización de scroll y transiciones */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1.5rem;
+        * {
+            user-select: none; /* Evita selección de texto mientras se arrastra */
         }
-        .canvas-block {
-            background: rgba(20, 20, 35, 0.7);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: all 0.2s ease;
+        body {
+            overflow: hidden;
+            height: 100vh;
+        }
+        #canvasContainer {
+            position: relative;
+            background: #1e1e2f;
+            background-image: 
+                linear-gradient(to right, #2d2d44 1px, transparent 1px),
+                linear-gradient(to bottom, #2d2d44 1px, transparent 1px);
+            background-size: 25px 25px;
+            overflow: auto;
+            cursor: crosshair;
+            height: calc(100vh - 80px);
+        }
+        .canvas-element {
+            position: absolute;
             cursor: grab;
+            background: rgba(59, 130, 246, 0.2);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: box-shadow 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 12px;
+            color: white;
+            word-break: break-word;
+            resize: both;
+            overflow: auto;
         }
-        .canvas-block:active {
+        .canvas-element:active {
             cursor: grabbing;
         }
-        .block-type-badge {
-            font-size: 0.7rem;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 20px;
-            padding: 2px 8px;
+        .canvas-element.selected {
+            border: 3px solid #facc15;
+            box-shadow: 0 0 0 2px rgba(250,204,21,0.5);
         }
-        .timeline-item {
-            border-left: 2px solid #3b82f6;
-            padding-left: 12px;
-            margin-bottom: 12px;
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border: 1px solid #3b82f6;
+            border-radius: 2px;
+            bottom: 0;
+            right: 0;
+            cursor: nw-resize;
         }
-        .ai-message {
-            background: rgba(59, 130, 246, 0.2);
-            border-radius: 1rem;
-            padding: 8px 12px;
-            margin: 8px 0;
-            font-size: 0.85rem;
-        }
-        .reference-img, .sketch-img {
-            max-width: 100%;
-            border-radius: 12px;
-            margin-top: 8px;
+        .element-remove {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ef4444;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
             cursor: pointer;
+            z-index: 10;
         }
-        button {
+        .tool-btn {
             transition: all 0.2s;
         }
-        button:active {
-            transform: scale(0.96);
+        .tool-btn.active {
+            background: #3b82f6;
+            color: white;
         }
-        .workspace-area {
-            min-height: 500px;
-            max-height: 70vh;
-            overflow-y: auto;
+        .property-panel input {
+            background: #2d2d44;
+            border: 1px solid #4b4b6e;
+            color: white;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 to-gray-900 text-white font-sans antialiased">
+<body class="bg-gray-900 text-white">
 
-    <!-- HEADER PRINCIPAL -->
-    <header class="border-b border-white/10 bg-black/30 backdrop-blur-md sticky top-0 z-20">
-        <div class="container mx-auto px-5 py-4 flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-cubes text-3xl text-blue-400"></i>
-                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VPO Studio</h1>
-                <span class="text-xs px-2 py-1 bg-white/10 rounded-full">Visual Prompt Orchestrator</span>
-            </div>
-            <div class="flex gap-2 flex-wrap">
-                <button id="newProjectBtn" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-sm flex items-center gap-2"><i class="fas fa-plus"></i> Nuevo proyecto</button>
-                <button id="saveProjectBtn" class="bg-blue-600/80 hover:bg-blue-600 px-4 py-2 rounded-xl text-sm flex items-center gap-2"><i class="fas fa-save"></i> Guardar</button>
-                <button id="exportJsonBtn" class="bg-purple-600/80 hover:bg-purple-600 px-4 py-2 rounded-xl text-sm flex items-center gap-2"><i class="fas fa-download"></i> Exportar JSON</button>
-                <button id="copyPromptBtn" class="bg-emerald-600/80 hover:bg-emerald-600 px-4 py-2 rounded-xl text-sm flex items-center gap-2"><i class="fas fa-copy"></i> Copiar Prompt Visual</button>
-            </div>
+    <!-- Barra superior -->
+    <div class="bg-black/50 backdrop-blur-md border-b border-white/10 px-5 py-2 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-shapes text-2xl text-blue-400"></i>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VPO Canvas Libre</h1>
+            <span class="text-xs bg-white/10 px-2 py-1 rounded-full">Paint Geométrico para IA</span>
         </div>
-    </header>
+        <div class="flex gap-2 flex-wrap">
+            <button id="clearCanvasBtn" class="bg-red-600/70 hover:bg-red-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-trash-alt"></i> Limpiar todo</button>
+            <button id="exportPromptBtn" class="bg-green-600/70 hover:bg-green-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-code"></i> Generar Prompt Visual</button>
+            <button id="copyPromptBtn" class="bg-blue-600/70 hover:bg-blue-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-copy"></i> Copiar Prompt</button>
+            <button id="saveCanvasBtn" class="bg-purple-600/70 hover:bg-purple-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-save"></i> Guardar</button>
+        </div>
+    </div>
 
-    <!-- MAIN LAYOUT: 3 columnas -->
-    <div class="container mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- COLUMNA IZQUIERDA: Herramientas y referencias -->
-        <div class="lg:col-span-3 space-y-5">
-            <!-- Panel de bloques -->
-            <div class="glass-panel p-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-3"><i class="fas fa-puzzle-piece text-blue-400"></i> Bloques visuales</h2>
-                <div class="grid grid-cols-2 gap-2">
-                    <button data-block-type="header" class="add-block-btn bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-sm"><i class="fas fa-heading mr-1"></i> Header</button>
-                    <button data-block-type="text" class="add-block-btn bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-sm"><i class="fas fa-paragraph mr-1"></i> Texto</button>
-                    <button data-block-type="image" class="add-block-btn bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-sm"><i class="fas fa-image mr-1"></i> Imagen</button>
-                    <button data-block-type="button" class="add-block-btn bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-sm"><i class="fas fa-hand-pointer mr-1"></i> Botón</button>
-                    <button data-block-type="card" class="add-block-btn bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-sm"><i class="fas fa-id-card mr-1"></i> Tarjeta</button>
-                    <button data-block-type="sidebar" class="add-block-btn bg-slate-800 hover:bg-slate-700 p-2 rounded-lg text-sm"><i class="fas fa-bars mr-1"></i> Sidebar</button>
-                </div>
+    <div class="flex h-full">
+        <!-- Barra lateral de herramientas -->
+        <div class="w-16 bg-black/40 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-4 gap-4">
+            <button id="tool-rect" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="rect"><i class="fas fa-square text-xl"></i></button>
+            <button id="tool-circle" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="circle"><i class="fas fa-circle text-xl"></i></button>
+            <button id="tool-triangle" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="triangle"><i class="fas fa-play rotate-90 text-xl"></i></button>
+            <button id="tool-text" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="text"><i class="fas fa-font text-xl"></i></button>
+            <button id="tool-image" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="image"><i class="fas fa-image text-xl"></i></button>
+            <div class="h-px w-8 bg-white/20 my-2"></div>
+            <button id="deleteSelectedBtn" class="w-10 h-10 rounded-xl bg-red-600/40 hover:bg-red-600 flex items-center justify-center"><i class="fas fa-trash-alt"></i></button>
+        </div>
+
+        <!-- Panel de propiedades (derecha) -->
+        <div class="w-64 bg-black/40 backdrop-blur-md border-l border-white/10 p-3 flex flex-col gap-3 overflow-y-auto">
+            <h3 class="text-sm font-semibold"><i class="fas fa-sliders-h mr-1"></i> Propiedades</h3>
+            <div id="propertyPanel" class="text-xs space-y-2">
+                <p class="text-gray-400 italic">Selecciona un elemento</p>
             </div>
-
-            <!-- Subir referencias visuales -->
-            <div class="glass-panel p-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-3"><i class="fas fa-images text-green-400"></i> Referencias visuales</h2>
-                <input type="file" id="refUpload" accept="image/*" class="hidden" multiple>
-                <button id="triggerRefUpload" class="w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-sm flex items-center justify-center gap-2"><i class="fas fa-upload"></i> Subir imagen(es)</button>
-                <div id="referencesGallery" class="mt-3 flex flex-wrap gap-2"></div>
+            <div class="border-t border-white/20 pt-2 mt-2">
+                <h4 class="text-xs font-semibold mb-1">Referencias / Bocetos</h4>
+                <input type="file" id="refInput" accept="image/*" class="hidden" multiple>
+                <button id="uploadRefBtn" class="bg-white/10 w-full py-1 rounded text-xs"><i class="fas fa-upload"></i> Subir imagen de referencia</button>
+                <div id="refThumbs" class="flex flex-wrap gap-1 mt-2 max-h-28 overflow-auto"></div>
+                <input type="file" id="sketchInput" accept="image/*" class="hidden">
+                <button id="uploadSketchBtn" class="bg-white/10 w-full py-1 rounded text-xs mt-2"><i class="fas fa-draw-polygon"></i> Subir boceto</button>
+                <div id="sketchPreview" class="mt-1 text-center text-[10px] text-gray-400"></div>
             </div>
-
-            <!-- Bocetos / Sketches -->
-            <div class="glass-panel p-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-3"><i class="fas fa-draw-polygon text-amber-400"></i> Bocetos (Sketch)</h2>
-                <input type="file" id="sketchUpload" accept="image/*" class="hidden">
-                <button id="triggerSketchUpload" class="w-full bg-white/10 hover:bg-white/20 py-2 rounded-xl text-sm flex items-center justify-center gap-2"><i class="fas fa-pen-fancy"></i> Subir boceto</button>
-                <div id="sketchPreview" class="mt-2 text-center text-xs text-gray-300"></div>
-            </div>
-
-            <!-- Notas rápidas -->
-            <div class="glass-panel p-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-2"><i class="fas fa-sticky-note text-yellow-300"></i> Notas</h2>
-                <textarea id="quickNotes" rows="3" class="w-full bg-black/40 border border-white/20 rounded-xl p-2 text-sm text-white placeholder-gray-400" placeholder="Captura ideas, pendientes, observaciones..."></textarea>
+            <div class="border-t border-white/20 pt-2">
+                <h4 class="text-xs font-semibold">Notas</h4>
+                <textarea id="quickNotes" rows="2" class="w-full bg-black/40 border border-white/20 rounded text-xs p-1" placeholder="Ideas, observaciones..."></textarea>
             </div>
         </div>
 
-        <!-- COLUMNA CENTRAL: WORKSPACE (Canvas visual con bloques) -->
-        <div class="lg:col-span-6">
-            <div class="glass-panel p-4 h-full flex flex-col">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-lg font-semibold"><i class="fas fa-cubes mr-2 text-blue-300"></i> Canvas visual</h2>
-                    <span class="text-xs text-gray-400"><i class="fas fa-arrows-alt"></i> Arrastra para reorganizar</span>
-                </div>
-                <div id="blocksContainer" class="workspace-area space-y-3 p-2 min-h-[500px]">
-                    <!-- Los bloques se inyectan aquí dinámicamente -->
-                    <div class="text-center text-gray-400 py-10 text-sm">✨ Agrega bloques desde la izquierda para construir tu estructura visual</div>
-                </div>
-                <!-- Indicador de jerarquía visual -->
-                <div class="mt-4 text-xs text-gray-400 border-t border-white/10 pt-3 flex justify-between">
-                    <span><i class="fas fa-layer-group"></i> Orden = jerarquía visual (arriba = más dominante)</span>
-                    <span id="blockCount">0 bloques</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- COLUMNA DERECHA: IA Asistente + Timeline + Export IA -->
-        <div class="lg:col-span-3 space-y-5">
-            <!-- Asistente IA interno (simulado pero contextual) -->
-            <div class="glass-panel p-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-2"><i class="fas fa-robot text-purple-400"></i> Asistente IA</h2>
-                <div id="aiChat" class="h-48 overflow-y-auto text-sm space-y-2 mb-3 bg-black/20 rounded-xl p-2">
-                    <div class="ai-message">🤖 Hola! Soy tu asistente VPO. Organiza bloques, sube referencias o bocetos y te ayudaré a optimizar tu Prompt Visual.</div>
-                </div>
-                <button id="askAiSuggestionBtn" class="w-full bg-purple-600/70 hover:bg-purple-600 py-2 rounded-xl text-sm flex items-center justify-center gap-2"><i class="fas fa-magic"></i> Sugerir mejoras IA</button>
-                <button id="generateVisualPromptBtn" class="w-full mt-2 bg-blue-600/70 hover:bg-blue-600 py-2 rounded-xl text-sm flex items-center justify-center gap-2"><i class="fas fa-code-branch"></i> Generar Prompt Visual</button>
-            </div>
-
-            <!-- Exportación Multi-IA -->
-            <div class="glass-panel p-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-2"><i class="fas fa-share-alt text-cyan-400"></i> Orquestador IA</h2>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                    <button data-ai="chatgpt" class="export-ai-btn bg-green-800/40 hover:bg-green-700 py-2 rounded-lg">ChatGPT</button>
-                    <button data-ai="claude" class="export-ai-btn bg-orange-800/40 hover:bg-orange-700 py-2 rounded-lg">Claude</button>
-                    <button data-ai="gemini" class="export-ai-btn bg-blue-800/40 hover:bg-blue-700 py-2 rounded-lg">Gemini</button>
-                    <button data-ai="cursor" class="export-ai-btn bg-gray-700/60 hover:bg-gray-600 py-2 rounded-lg">Cursor</button>
-                    <button data-ai="devin" class="export-ai-btn bg-indigo-800/40 hover:bg-indigo-700 py-2 rounded-lg">Devin</button>
-                    <button data-ai="kimi" class="export-ai-btn bg-red-800/40 hover:bg-red-700 py-2 rounded-lg">Kimi</button>
-                </div>
-                <p class="text-xs text-gray-400 mt-3 text-center">Envía el contexto completo a la IA elegida (abre enlace con prompt preparado)</p>
-            </div>
-
-            <!-- Timeline / Memoria del proyecto -->
-            <div class="glass-panel p-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2 mb-2"><i class="fas fa-history text-gray-300"></i> Timeline & Memoria</h2>
-                <div id="timelineList" class="h-40 overflow-y-auto text-xs space-y-1 pr-1"></div>
-                <button id="clearTimelineBtn" class="mt-2 text-xs text-red-300 hover:text-red-200 w-full text-center">Limpiar historial</button>
-            </div>
+        <!-- Canvas principal -->
+        <div id="canvasContainer" class="flex-1 relative">
+            <!-- Los elementos se inyectan aquí con posicionamiento absoluto -->
         </div>
     </div>
 
     <script>
-        // ---------- ESTADO GLOBAL ----------
-        let blocks = [];        // array de objetos { id, type, content, order }
+        // ---------------- MODELO ----------------
+        let elements = []; // { id, shape, x, y, w, h, content (texto o url), color, rotation? }
+        let selectedId = null;
         let nextId = 100;
-        let references = [];    // urls de imágenes subidas
-        let sketchData = null;   // url del sketch actual
-        let timelineEvents = [];  // registro de acciones
-        let notesContent = "";
+        let references = []; // urls de imágenes
+        let sketchData = null;
+        let dragTarget = null;
+        let dragOffsetX = 0, dragOffsetY = 0;
+        let resizeTarget = null;
+        
+        const canvas = document.getElementById('canvasContainer');
+        let activeShape = 'rect'; // por defecto
 
-        // Elementos del DOM
-        const blocksContainer = document.getElementById('blocksContainer');
-        const referencesGallery = document.getElementById('referencesGallery');
-        const sketchPreviewDiv = document.getElementById('sketchPreview');
-        const quickNotesArea = document.getElementById('quickNotes');
-        const timelineListDiv = document.getElementById('timelineList');
-        const aiChatDiv = document.getElementById('aiChat');
-        const blockCountSpan = document.getElementById('blockCount');
+        // Helper: generar prompt visual geométrico
+        function generateGeometricPrompt() {
+            let prompt = `=== VISUAL PROMPT GEOMÉTRICO PARA IA ===\n`;
+            prompt += `La interfaz debe respetar EXACTAMENTE las siguientes formas, posiciones y tamaños relativos al contenedor principal (${canvas.clientWidth}px de ancho, ${canvas.clientHeight}px de alto).\n\n`;
+            prompt += `Elementos (ordenados por capa, los primeros son los más inferiores si se solapan):\n`;
+            elements.forEach((el, idx) => {
+                let shapeDesc = '';
+                switch(el.shape) {
+                    case 'rect': shapeDesc = 'rectángulo'; break;
+                    case 'circle': shapeDesc = 'círculo/elipse'; break;
+                    case 'triangle': shapeDesc = 'triángulo (apuntando hacia arriba)'; break;
+                    case 'text': shapeDesc = 'caja de texto'; break;
+                    case 'image': shapeDesc = 'imagen'; break;
+                }
+                prompt += `${idx+1}. ${shapeDesc.toUpperCase()}:\n`;
+                prompt += `   - Posición: X=${el.x}px, Y=${el.y}px (esquina superior izquierda del bounding box)\n`;
+                prompt += `   - Tamaño: ancho=${el.w}px, alto=${el.h}px\n`;
+                if(el.shape === 'text') prompt += `   - Contenido textual: "${el.content || 'texto de ejemplo'}"\n`;
+                if(el.shape === 'image') prompt += `   - Fuente de imagen: ${el.content || 'url_de_imagen'}\n`;
+                if(el.shape !== 'text' && el.shape !== 'image') prompt += `   - Color/estilo: fondo semitransparente azul, borde azul (personalizable)\n`;
+                prompt += `\n`;
+            });
+            if(references.length) prompt += `\nReferencias visuales subidas: ${references.length} imagen(es) - se deben tomar como inspiración de estilo.\n`;
+            if(sketchData) prompt += `\nBoceto original: el usuario subió un dibujo; interpreta su disposición aproximada.\n`;
+            prompt += `\nINSTRUCCIÓN: Construye la interfaz respetando estas posiciones y formas exactas. Los elementos deben poder ser arrastrables/redimensionables en la versión final? (seguir especificación)`;
+            return prompt;
+        }
 
-        // Helper: añadir evento al timeline
-        function addTimelineEvent(action, detail) {
-            const event = { timestamp: new Date().toLocaleTimeString(), action, detail };
-            timelineEvents.unshift(event); // más reciente arriba
-            renderTimeline();
-            // Guardado automático después de cada acción importante (excepto carga inicial)
+        // Renderizar todos los elementos en el DOM (actualización completa)
+        function renderElements() {
+            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
+            elements.forEach(el => {
+                const div = document.createElement('div');
+                div.className = `canvas-element ${selectedId === el.id ? 'selected' : ''}`;
+                div.style.left = `${el.x}px`;
+                div.style.top = `${el.y}px`;
+                div.style.width = `${el.w}px`;
+                div.style.height = `${el.h}px`;
+                div.style.position = 'absolute';
+                div.setAttribute('data-id', el.id);
+                
+                // Contenido según shape
+                if(el.shape === 'text') {
+                    div.innerText = el.content || 'Texto';
+                    div.style.background = 'rgba(0,0,0,0.6)';
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    div.style.justifyContent = 'center';
+                } else if(el.shape === 'image' && el.content) {
+                    const img = document.createElement('img');
+                    img.src = el.content;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    div.appendChild(img);
+                } else if(el.shape === 'circle') {
+                    div.style.borderRadius = '50%';
+                    div.style.background = 'rgba(59,130,246,0.3)';
+                    div.innerText = el.content || '●';
+                } else if(el.shape === 'triangle') {
+                    // pintar un triángulo con clip-path
+                    div.style.background = 'rgba(59,130,246,0.3)';
+                    div.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+                    div.innerText = '';
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'flex-end';
+                    div.style.justifyContent = 'center';
+                    div.innerText = el.content || '▲';
+                } else {
+                    // rectángulo por defecto
+                    div.style.background = 'rgba(59,130,246,0.3)';
+                    div.innerText = el.content || '📦';
+                }
+                
+                // Botón eliminar
+                const removeBtn = document.createElement('div');
+                removeBtn.className = 'element-remove';
+                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteElement(el.id);
+                });
+                div.appendChild(removeBtn);
+                
+                // Manejadores de arrastre
+                div.addEventListener('mousedown', (e) => {
+                    if(e.target === removeBtn) return;
+                    e.stopPropagation();
+                    selectedId = el.id;
+                    renderElements(); // refrescar selección
+                    updatePropertyPanel();
+                    startDrag(e, el.id);
+                });
+                
+                canvas.appendChild(div);
+            });
+            // Añadir manejadores de redimensionamiento (simple: esquina inferior derecha)
+            document.querySelectorAll('.canvas-element').forEach(elDiv => {
+                const id = parseInt(elDiv.dataset.id);
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'resize-handle';
+                resizeHandle.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    startResize(e, id);
+                });
+                elDiv.appendChild(resizeHandle);
+            });
+        }
+        
+        // Lógica de arrastre
+        let isDragging = false;
+        function startDrag(e, id) {
+            const el = elements.find(e => e.id === id);
+            if(!el) return;
+            dragTarget = id;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            dragOffsetX = mouseX - el.x;
+            dragOffsetY = mouseY - el.y;
+            isDragging = true;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        }
+        
+        function onMouseMove(e) {
+            if(!isDragging || dragTarget === null) return;
+            const rect = canvas.getBoundingClientRect();
+            let newX = e.clientX - rect.left - dragOffsetX;
+            let newY = e.clientY - rect.top - dragOffsetY;
+            // límites
+            newX = Math.min(Math.max(0, newX), canvas.clientWidth - (elements.find(el=>el.id===dragTarget)?.w || 100));
+            newY = Math.min(Math.max(0, newY), canvas.clientHeight - (elements.find(el=>el.id===dragTarget)?.h || 100));
+            const el = elements.find(e => e.id === dragTarget);
+            if(el) {
+                el.x = newX;
+                el.y = newY;
+                renderElements();
+            }
+        }
+        
+        function onMouseUp() {
+            isDragging = false;
+            dragTarget = null;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
             saveToLocalStorage();
         }
-
-        function renderTimeline() {
-            timelineListDiv.innerHTML = timelineEvents.slice(0, 20).map(ev => `
-                <div class="timeline-item text-gray-300 text-[11px]">
-                    <span class="text-blue-300">[${ev.timestamp}]</span> <strong>${ev.action}</strong> ${ev.detail ? `: ${ev.detail}` : ''}
-                </div>
-            `).join('');
-            if(timelineEvents.length === 0) timelineListDiv.innerHTML = '<div class="text-gray-500 text-xs">Aún no hay actividad</div>';
+        
+        // Redimensionamiento simple (esquina inferior derecha)
+        let resizeElementId = null;
+        let startW, startH, startX, startY;
+        function startResize(e, id) {
+            e.stopPropagation();
+            const el = elements.find(e => e.id === id);
+            if(!el) return;
+            resizeElementId = id;
+            startW = el.w;
+            startH = el.h;
+            startX = e.clientX;
+            startY = e.clientY;
+            document.addEventListener('mousemove', onResizeMove);
+            document.addEventListener('mouseup', onResizeUp);
         }
-
-        // Guardar en localStorage (proyecto actual)
-        function saveToLocalStorage() {
-            const project = {
-                blocks, nextId, references, sketchData, notes: quickNotesArea.value,
-                timelineEvents
+        
+        function onResizeMove(e) {
+            if(!resizeElementId) return;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            const el = elements.find(e => e.id === resizeElementId);
+            if(el) {
+                el.w = Math.max(30, startW + deltaX);
+                el.h = Math.max(30, startH + deltaY);
+                renderElements();
+            }
+        }
+        
+        function onResizeUp() {
+            resizeElementId = null;
+            document.removeEventListener('mousemove', onResizeMove);
+            document.removeEventListener('mouseup', onResizeUp);
+            saveToLocalStorage();
+        }
+        
+        function deleteElement(id) {
+            elements = elements.filter(e => e.id !== id);
+            if(selectedId === id) selectedId = null;
+            renderElements();
+            updatePropertyPanel();
+            saveToLocalStorage();
+        }
+        
+        function addElement(shape, x, y, w, h, content = '') {
+            const newEl = {
+                id: nextId++,
+                shape: shape,
+                x: x, y: y, w: w, h: h,
+                content: content
             };
-            localStorage.setItem('vpo_current_project', JSON.stringify(project));
-            addTimelineEvent('Guardado automático', 'proyecto persistido');
-            renderBlockCount();
+            if(shape === 'text') newEl.content = content || 'Nuevo texto';
+            if(shape === 'image') newEl.content = content || '';
+            elements.push(newEl);
+            selectedId = newEl.id;
+            renderElements();
+            updatePropertyPanel();
+            saveToLocalStorage();
         }
-
+        
+        function updatePropertyPanel() {
+            const panel = document.getElementById('propertyPanel');
+            if(!selectedId) {
+                panel.innerHTML = '<p class="text-gray-400 italic">Selecciona un elemento</p>';
+                return;
+            }
+            const el = elements.find(e => e.id === selectedId);
+            if(!el) return;
+            panel.innerHTML = `
+                <div><label class="block text-gray-300">Forma: ${el.shape}</label></div>
+                <div><label>Contenido:</label><input id="propContent" type="text" value="${el.content || ''}" class="w-full"></div>
+                <div><label>X:</label><input id="propX" type="number" value="${el.x}" class="w-full"></div>
+                <div><label>Y:</label><input id="propY" type="number" value="${el.y}" class="w-full"></div>
+                <div><label>Ancho:</label><input id="propW" type="number" value="${el.w}" class="w-full"></div>
+                <div><label>Alto:</label><input id="propH" type="number" value="${el.h}" class="w-full"></div>
+                <button id="applyPropsBtn" class="bg-blue-600 w-full py-1 rounded text-xs mt-2">Aplicar cambios</button>
+            `;
+            document.getElementById('applyPropsBtn')?.addEventListener('click', () => {
+                const content = document.getElementById('propContent').value;
+                const x = parseInt(document.getElementById('propX').value);
+                const y = parseInt(document.getElementById('propY').value);
+                const w = parseInt(document.getElementById('propW').value);
+                const h = parseInt(document.getElementById('propH').value);
+                if(!isNaN(x)) el.x = x;
+                if(!isNaN(y)) el.y = y;
+                if(!isNaN(w)) el.w = w;
+                if(!isNaN(h)) el.h = h;
+                el.content = content;
+                if(el.shape === 'image' && content) el.content = content;
+                renderElements();
+                saveToLocalStorage();
+                updatePropertyPanel();
+            });
+        }
+        
+        // Guardar/cargar localStorage
+        function saveToLocalStorage() {
+            const state = {
+                elements, nextId, references, sketchData,
+                notes: document.getElementById('quickNotes').value,
+                canvasSize: { w: canvas.clientWidth, h: canvas.clientHeight }
+            };
+            localStorage.setItem('vpo_freecanvas', JSON.stringify(state));
+        }
+        
         function loadFromLocalStorage() {
-            const raw = localStorage.getItem('vpo_current_project');
+            const raw = localStorage.getItem('vpo_freecanvas');
             if(raw) {
                 try {
-                    const saved = JSON.parse(raw);
-                    blocks = saved.blocks || [];
-                    nextId = saved.nextId || 100;
-                    references = saved.references || [];
-                    sketchData = saved.sketchData || null;
-                    quickNotesArea.value = saved.notes || '';
-                    timelineEvents = saved.timelineEvents || [];
-                    renderBlocks();
+                    const state = JSON.parse(raw);
+                    elements = state.elements || [];
+                    nextId = state.nextId || 100;
+                    references = state.references || [];
+                    sketchData = state.sketchData || null;
+                    document.getElementById('quickNotes').value = state.notes || '';
+                    renderElements();
                     renderReferences();
                     renderSketch();
-                    renderTimeline();
-                    addTimelineEvent('Proyecto cargado', 'desde almacenamiento local');
-                } catch(e) { console.warn(e); resetDefaultProject(); }
+                    updatePropertyPanel();
+                } catch(e) { resetCanvas(); }
             } else {
-                resetDefaultProject();
+                resetCanvas();
             }
-            renderBlockCount();
         }
-
-        function resetDefaultProject() {
-            blocks = [];
+        
+        function resetCanvas() {
+            elements = [];
             nextId = 100;
             references = [];
             sketchData = null;
-            quickNotesArea.value = '';
-            timelineEvents = [];
-            addTimelineEvent('Nuevo proyecto', 'estructura vacía');
-            renderBlocks();
+            document.getElementById('quickNotes').value = '';
+            renderElements();
             renderReferences();
             renderSketch();
-            renderTimeline();
+            updatePropertyPanel();
             saveToLocalStorage();
         }
-
-        // Renderizar bloques en el canvas (SortableJS habilitado)
-        let sortableInstance = null;
-        function renderBlocks() {
-            if(blocks.length === 0) {
-                blocksContainer.innerHTML = `<div class="text-center text-gray-400 py-10 text-sm">✨ Agrega bloques desde la izquierda para construir tu estructura visual</div>`;
-                if(sortableInstance) sortableInstance.destroy();
-                sortableInstance = null;
-                return;
-            }
-            const html = blocks.map(block => `
-                <div class="canvas-block p-3 rounded-xl" data-id="${block.id}">
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <i class="fas ${getIconForType(block.type)} text-blue-300 text-sm"></i>
-                            <span class="block-type-badge">${block.type.toUpperCase()}</span>
-                            <span class="text-sm font-medium">${block.content?.title || 'Sin título'}</span>
-                        </div>
-                        <button class="delete-block text-red-400 hover:text-red-300 text-sm" data-id="${block.id}"><i class="fas fa-trash-alt"></i></button>
-                    </div>
-                    <div class="mt-2 text-xs text-gray-300">
-                        ${block.content?.description ? block.content.description.substring(0, 80) : 'Contenido editable... haz clic para editar'}
-                    </div>
-                </div>
-            `).join('');
-            blocksContainer.innerHTML = html;
-            // Re-asignar eventos de borrado
-            document.querySelectorAll('.delete-block').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = parseInt(btn.dataset.id);
-                    removeBlockById(id);
-                });
-            });
-            // Habilitar reordenamiento con SortableJS
-            if(sortableInstance) sortableInstance.destroy();
-            sortableInstance = new Sortable(blocksContainer, {
-                animation: 200,
-                onEnd: (evt) => {
-                    const newOrder = Array.from(blocksContainer.children).map(child => parseInt(child.dataset.id));
-                    blocks.sort((a,b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
-                    addTimelineEvent('Reordenación', 'bloques reorganizados visualmente');
-                    saveToLocalStorage();
-                    renderBlockCount();
-                }
-            });
-            // Edición rápida al hacer clic en el bloque (cambiar título/desc)
-            document.querySelectorAll('.canvas-block').forEach(el => {
-                el.addEventListener('dblclick', (e) => {
-                    if(e.target.closest('.delete-block')) return;
-                    const id = parseInt(el.dataset.id);
-                    const block = blocks.find(b => b.id === id);
-                    if(block) {
-                        const newTitle = prompt('Editar título del bloque', block.content?.title || '');
-                        const newDesc = prompt('Editar descripción / contenido', block.content?.description || '');
-                        if(newTitle !== null) block.content = block.content || {};
-                        if(newTitle !== null) block.content.title = newTitle;
-                        if(newDesc !== null) block.content.description = newDesc;
-                        renderBlocks();
-                        addTimelineEvent('Edición', `bloque ${block.type} modificado`);
-                        saveToLocalStorage();
-                    }
-                });
-            });
-            renderBlockCount();
-        }
-
-        function getIconForType(type) {
-            const map = { header: 'fa-heading', text: 'fa-paragraph', image: 'fa-image', button: 'fa-hand-pointer', card: 'fa-id-card', sidebar: 'fa-bars' };
-            return map[type] || 'fa-cube';
-        }
-
-        function removeBlockById(id) {
-            const removed = blocks.find(b => b.id === id);
-            blocks = blocks.filter(b => b.id !== id);
-            renderBlocks();
-            addTimelineEvent('Bloque eliminado', `${removed?.type} "${removed?.content?.title || ''}"`);
-            saveToLocalStorage();
-        }
-
-        function addBlock(type) {
-            const newBlock = {
-                id: nextId++,
-                type: type,
-                content: { title: `Nuevo ${type}`, description: `Bloque de tipo ${type}. Personaliza haciendo doble clic.` }
-            };
-            blocks.push(newBlock);
-            renderBlocks();
-            addTimelineEvent('Bloque agregado', `${type} - "${newBlock.content.title}"`);
-            // Sugerencia IA automática leve
-            sendAiMessage(`📌 Se agregó un bloque "${type}". Puedes ubicarlo estratégicamente.`);
-            saveToLocalStorage();
-        }
-
-        // Referencias visuales
+        
         function renderReferences() {
-            if(references.length === 0) {
-                referencesGallery.innerHTML = '<span class="text-gray-500 text-xs">Sin referencias aún</span>';
-                return;
-            }
-            referencesGallery.innerHTML = references.map(url => `
-                <div class="relative inline-block">
-                    <img src="${url}" class="reference-img w-20 h-20 object-cover rounded-lg border border-white/20">
-                    <button class="remove-ref absolute -top-2 -right-2 bg-red-500 rounded-full w-5 h-5 text-xs" data-url="${url}">✕</button>
-                </div>
-            `).join('');
+            const container = document.getElementById('refThumbs');
+            if(!references.length) { container.innerHTML = '<span class="text-gray-500 text-[10px]">Sin referencias</span>'; return; }
+            container.innerHTML = references.map(url => `<div class="relative"><img src="${url}" class="w-12 h-12 object-cover rounded border border-white/20"><button class="remove-ref absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-[8px]" data-url="${url}">✕</button></div>`).join('');
             document.querySelectorAll('.remove-ref').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const url = btn.dataset.url;
                     references = references.filter(r => r !== url);
                     renderReferences();
-                    addTimelineEvent('Referencia eliminada', 'imagen');
                     saveToLocalStorage();
                 });
             });
         }
-
-        function addReferenceImage(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                references.push(e.target.result);
-                renderReferences();
-                addTimelineEvent('Referencia subida', `imagen (${file.name})`);
-                sendAiMessage(`🖼️ He analizado la referencia visual. La estructura de colores y composición puede inspirar un layout con ${blocks.length} bloques.`);
-                saveToLocalStorage();
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // Bocetos
-        function addSketch(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                sketchData = e.target.result;
-                renderSketch();
-                addTimelineEvent('Boceto subido', 'interpretación IA simulada');
-                // Simular interpretación de sketch: sugerir bloques automáticos
-                sendAiMessage(`✏️ Interpretación del boceto: Detecto una estructura con zona superior (header), área central de contenido y posible sidebar. ¿Deseas que agregue un par de bloques base?`);
-                setTimeout(() => {
-                    if(confirm("El sketch sugiere añadir un bloque 'Header' y un bloque 'Texto'. ¿Aceptas?")) {
-                        addBlock('header');
-                        addBlock('text');
-                    }
-                }, 500);
-                saveToLocalStorage();
-            };
-            reader.readAsDataURL(file);
-        }
-
+        
         function renderSketch() {
+            const container = document.getElementById('sketchPreview');
             if(sketchData) {
-                sketchPreviewDiv.innerHTML = `<img src="${sketchData}" class="sketch-img max-h-28 w-auto rounded-lg border border-amber-500/50"><button id="clearSketchBtn" class="text-xs text-red-300 mt-1">Eliminar boceto</button>`;
-                document.getElementById('clearSketchBtn')?.addEventListener('click', () => {
-                    sketchData = null;
-                    renderSketch();
-                    addTimelineEvent('Boceto eliminado', '');
-                    saveToLocalStorage();
-                });
+                container.innerHTML = `<img src="${sketchData}" class="max-h-16 rounded border border-amber-400"><button id="clearSketchBtn" class="text-red-400 text-[10px] ml-1">Eliminar</button>`;
+                document.getElementById('clearSketchBtn')?.addEventListener('click', () => { sketchData = null; renderSketch(); saveToLocalStorage(); });
             } else {
-                sketchPreviewDiv.innerHTML = '<span class="text-gray-500 text-xs">Ningún boceto cargado</span>';
+                container.innerHTML = '<span class="text-gray-500 text-[10px]">Ningún boceto</span>';
             }
         }
-
-        // Generar Prompt Visual (texto estructurado)
-        function generateVisualPrompt() {
-            let promptText = `=== VISUAL PROMPT ORCHESTRATOR - CONTEXTO PARA IA ===\n`;
-            promptText += `Estructura visual (orden jerárquico de arriba abajo):\n`;
-            blocks.forEach((block, idx) => {
-                promptText += `${idx+1}. [${block.type.toUpperCase()}] ${block.content.title || ''} : ${block.content.description || ''}\n`;
-            });
-            promptText += `\nReferencias visuales: ${references.length} imagen(es) adjunta(s).\n`;
-            if(sketchData) promptText += `\nBoceto original proporcionado (inspiración conceptual).\n`;
-            promptText += `\nNotas del proyecto: ${quickNotesArea.value.substring(0, 200)}\n`;
-            promptText += `\nObjetivo: Convertir esta intención visual organizada en un diseño funcional. Respeta jerarquías, flujo y experiencia sugerida.`;
-            return promptText;
-        }
-
-        function copyVisualPrompt() {
-            const prompt = generateVisualPrompt();
-            navigator.clipboard.writeText(prompt).then(() => {
-                sendAiMessage("✅ Prompt Visual copiado al portapapeles. Puedes pegarlo en ChatGPT, Claude u otra IA.");
-                addTimelineEvent('Prompt copiado', 'texto exportado');
-            });
-        }
-
-        // Exportar a IA externa (abre URL con texto)
-        function exportToAI(aiType) {
-            const basePrompt = generateVisualPrompt();
-            let url = '';
-            const encoded = encodeURIComponent(basePrompt);
-            switch(aiType) {
-                case 'chatgpt': url = `https://chat.openai.com/?q=${encoded}`; break;
-                case 'claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'gemini': url = `https://gemini.google.com/?q=${encoded}`; break;
-                default: url = `https://www.google.com/search?q=IA+constructor+${aiType}&btnI`; break;
+        
+        // Eventos UI
+        document.getElementById('tool-rect').addEventListener('click', () => { activeShape = 'rect'; });
+        document.getElementById('tool-circle').addEventListener('click', () => { activeShape = 'circle'; });
+        document.getElementById('tool-triangle').addEventListener('click', () => { activeShape = 'triangle'; });
+        document.getElementById('tool-text').addEventListener('click', () => { activeShape = 'text'; });
+        document.getElementById('tool-image').addEventListener('click', () => { 
+            activeShape = 'image';
+            const url = prompt('Ingresa URL de la imagen (o deja vacío para subir una local)');
+            if(url && url.startsWith('http')) {
+                addElement('image', 100, 100, 150, 150, url);
+            } else {
+                // subir archivo local
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if(file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            addElement('image', 100, 100, 150, 150, ev.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+                input.click();
             }
-            window.open(url, '_blank');
-            addTimelineEvent(`Exportado a ${aiType}`, 'contexto enviado');
-            sendAiMessage(`🚀 Proyecto enviado a ${aiType}. La IA constructora recibirá la jerarquía visual.`);
-        }
-
-        // Asistente IA interno (sugerencias contextuales)
-        function sendAiMessage(msg) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'ai-message';
-            msgDiv.innerHTML = `🤖 ${msg}`;
-            aiChatDiv.appendChild(msgDiv);
-            aiChatDiv.scrollTop = aiChatDiv.scrollHeight;
-            if(aiChatDiv.children.length > 12) aiChatDiv.removeChild(aiChatDiv.children[0]);
-        }
-
-        function suggestImprovements() {
-            let suggestion = "";
-            if(blocks.length === 0) suggestion = "No hay bloques aún. Empieza agregando un Header y un Texto para definir la estructura.";
-            else if(blocks.length < 3) suggestion = "Tu estructura es muy simple. Considera añadir una tarjeta o un botón de llamada a la acción.";
-            else {
-                const hasHeader = blocks.some(b => b.type === 'header');
-                const hasButton = blocks.some(b => b.type === 'button');
-                if(!hasHeader) suggestion = "Falta un bloque Header al inicio para jerarquía visual dominante.";
-                else if(!hasButton) suggestion = "Sugiero agregar un botón principal para guiar la acción del usuario.";
-                else suggestion = "La organización visual tiene buena base. Asegúrate de que el orden refleje la importancia (arriba = más relevante).";
+        });
+        
+        // Hacer clic en canvas para agregar elemento (con la herramienta activa)
+        canvas.addEventListener('click', (e) => {
+            if(e.target !== canvas && e.target.classList?.contains('canvas-element') === false && e.target.id !== 'canvasContainer') return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - 50;
+            const y = e.clientY - rect.top - 50;
+            if(activeShape === 'rect') addElement('rect', Math.max(0,x), Math.max(0,y), 120, 100, 'Rectángulo');
+            else if(activeShape === 'circle') addElement('circle', Math.max(0,x), Math.max(0,y), 100, 100, 'Círculo');
+            else if(activeShape === 'triangle') addElement('triangle', Math.max(0,x), Math.max(0,y), 100, 100, '▲');
+            else if(activeShape === 'text') {
+                const txt = prompt('Texto del elemento:', 'Nuevo texto');
+                if(txt) addElement('text', Math.max(0,x), Math.max(0,y), 120, 50, txt);
             }
-            sendAiMessage(`✨ Sugerencia: ${suggestion}`);
-            addTimelineEvent('Asistente IA', 'sugerencia generada');
-        }
-
-        function renderBlockCount() {
-            blockCountSpan.innerText = `${blocks.length} bloques`;
-        }
-
-        // ----- EVENTOS GLOBALES -----
-        document.querySelectorAll('.add-block-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const type = btn.dataset.blockType;
-                addBlock(type);
+        });
+        
+        document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
+            if(selectedId) deleteElement(selectedId);
+        });
+        document.getElementById('clearCanvasBtn').addEventListener('click', () => {
+            if(confirm('Eliminar todos los elementos?')) resetCanvas();
+        });
+        document.getElementById('exportPromptBtn').addEventListener('click', () => {
+            const prompt = generateGeometricPrompt();
+            alert('Prompt generado. Cópialo con el botón "Copiar Prompt"');
+        });
+        document.getElementById('copyPromptBtn').addEventListener('click', async () => {
+            const prompt = generateGeometricPrompt();
+            await navigator.clipboard.writeText(prompt);
+            alert('Prompt Visual Geométrico copiado al portapapeles.');
+        });
+        document.getElementById('saveCanvasBtn').addEventListener('click', () => saveToLocalStorage());
+        
+        // Subir referencias
+        document.getElementById('uploadRefBtn').addEventListener('click', () => document.getElementById('refInput').click());
+        document.getElementById('refInput').addEventListener('change', (e) => {
+            Array.from(e.target.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    references.push(ev.target.result);
+                    renderReferences();
+                    saveToLocalStorage();
+                };
+                reader.readAsDataURL(file);
             });
         });
-        document.getElementById('triggerRefUpload').addEventListener('click', () => document.getElementById('refUpload').click());
-        document.getElementById('refUpload').addEventListener('change', (e) => {
-            Array.from(e.target.files).forEach(file => addReferenceImage(file));
-            e.target.value = '';
+        document.getElementById('uploadSketchBtn').addEventListener('click', () => document.getElementById('sketchInput').click());
+        document.getElementById('sketchInput').addEventListener('change', (e) => {
+            if(e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    sketchData = ev.target.result;
+                    renderSketch();
+                    saveToLocalStorage();
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
         });
-        document.getElementById('triggerSketchUpload').addEventListener('click', () => document.getElementById('sketchUpload').click());
-        document.getElementById('sketchUpload').addEventListener('change', (e) => {
-            if(e.target.files[0]) addSketch(e.target.files[0]);
-            e.target.value = '';
-        });
-        document.getElementById('saveProjectBtn').addEventListener('click', () => saveToLocalStorage());
-        document.getElementById('newProjectBtn').addEventListener('click', () => {
-            if(confirm("¿Crear nuevo proyecto? Se perderán los cambios no exportados.")) resetDefaultProject();
-        });
-        document.getElementById('exportJsonBtn').addEventListener('click', () => {
-            const exportData = { blocks, references, sketchData, notes: quickNotesArea.value, timelineEvents };
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([dataStr], {type: "application/json"});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `vpo_project_${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            addTimelineEvent('Exportado JSON', 'respaldo del proyecto');
-        });
-        document.getElementById('copyPromptBtn').addEventListener('click', copyVisualPrompt);
-        document.getElementById('askAiSuggestionBtn').addEventListener('click', suggestImprovements);
-        document.getElementById('generateVisualPromptBtn').addEventListener('click', () => {
-            const prompt = generateVisualPrompt();
-            sendAiMessage("📋 Prompt Visual generado. Cópialo desde el botón superior o expórtalo a una IA.");
-            addTimelineEvent('Generación de Prompt Visual', 'contexto listo');
-        });
-        document.querySelectorAll('.export-ai-btn').forEach(btn => {
-            btn.addEventListener('click', () => exportToAI(btn.dataset.ai));
-        });
-        document.getElementById('clearTimelineBtn').addEventListener('click', () => {
-            timelineEvents = [];
-            renderTimeline();
-            saveToLocalStorage();
-            addTimelineEvent('Historial limpiado', '');
-        });
-        quickNotesArea.addEventListener('input', () => saveToLocalStorage());
-
-        // Inicializar
+        
+        // Inicialización
         loadFromLocalStorage();
-        // Guardado periódico
-        setInterval(() => saveToLocalStorage(), 30000);
+        // Ajustar tamaño del canvas al redimensionar ventana
+        window.addEventListener('resize', () => renderElements());
     </script>
 </body>
 </html>
