@@ -3,568 +3,617 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VPO Studio Canvas Libre - Visual Prompt Geométrico</title>
+    <title>VPO Studio Final - Visual Prompt Orchestrator</title>
+    <!-- Tailwind CSS + FontAwesome + Fabric.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
     <style>
-        * {
-            user-select: none; /* Evita selección de texto mientras se arrastra */
-        }
         body {
             overflow: hidden;
             height: 100vh;
+            margin: 0;
         }
-        #canvasContainer {
-            position: relative;
+        #canvas-container {
             background: #1e1e2f;
             background-image: 
                 linear-gradient(to right, #2d2d44 1px, transparent 1px),
                 linear-gradient(to bottom, #2d2d44 1px, transparent 1px);
             background-size: 25px 25px;
-            overflow: auto;
-            cursor: crosshair;
-            height: calc(100vh - 80px);
-        }
-        .canvas-element {
-            position: absolute;
-            cursor: grab;
-            background: rgba(59, 130, 246, 0.2);
-            border: 2px solid #3b82f6;
-            border-radius: 8px;
-            backdrop-filter: blur(4px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: box-shadow 0.1s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            font-size: 12px;
-            color: white;
-            word-break: break-word;
-            resize: both;
-            overflow: auto;
-        }
-        .canvas-element:active {
-            cursor: grabbing;
-        }
-        .canvas-element.selected {
-            border: 3px solid #facc15;
-            box-shadow: 0 0 0 2px rgba(250,204,21,0.5);
-        }
-        .resize-handle {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: white;
-            border: 1px solid #3b82f6;
-            border-radius: 2px;
-            bottom: 0;
-            right: 0;
-            cursor: nw-resize;
-        }
-        .element-remove {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #ef4444;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            cursor: pointer;
-            z-index: 10;
-        }
-        .tool-btn {
-            transition: all 0.2s;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
         .tool-btn.active {
             background: #3b82f6;
             color: white;
+            border-color: #3b82f6;
         }
-        .property-panel input {
+        .property-panel input, .property-panel textarea {
             background: #2d2d44;
             border: 1px solid #4b4b6e;
             color: white;
             border-radius: 8px;
             padding: 4px 8px;
             font-size: 12px;
+            width: 100%;
+        }
+        .library-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 6px;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .library-item:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .timeline-item {
+            border-left: 2px solid #3b82f6;
+            padding-left: 8px;
+            margin-bottom: 8px;
+            font-size: 11px;
         }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
 
     <!-- Barra superior -->
-    <div class="bg-black/50 backdrop-blur-md border-b border-white/10 px-5 py-2 flex flex-wrap items-center justify-between gap-2">
+    <div class="bg-black/50 backdrop-blur-md border-b border-white/10 px-4 py-2 flex flex-wrap items-center justify-between gap-2 z-10">
         <div class="flex items-center gap-3">
-            <i class="fas fa-shapes text-2xl text-blue-400"></i>
-            <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VPO Canvas Libre</h1>
-            <span class="text-xs bg-white/10 px-2 py-1 rounded-full">Paint Geométrico para IA</span>
+            <i class="fas fa-cubes text-2xl text-blue-400"></i>
+            <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VPO Studio Final</h1>
+            <span class="text-xs bg-white/10 px-2 py-1 rounded-full">Dibuja, Guarda, Orquesta</span>
         </div>
         <div class="flex gap-2 flex-wrap">
-            <button id="clearCanvasBtn" class="bg-red-600/70 hover:bg-red-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-trash-alt"></i> Limpiar todo</button>
-            <button id="exportPromptBtn" class="bg-green-600/70 hover:bg-green-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-code"></i> Generar Prompt Visual</button>
+            <button id="clearCanvasBtn" class="bg-red-600/70 hover:bg-red-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-trash-alt"></i> Limpiar</button>
+            <button id="undoBtn" class="bg-gray-600/70 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-undo"></i> Deshacer</button>
+            <button id="redoBtn" class="bg-gray-600/70 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-redo"></i> Rehacer</button>
+            <button id="generatePromptBtn" class="bg-green-600/70 hover:bg-green-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-code"></i> Generar Prompt Visual</button>
             <button id="copyPromptBtn" class="bg-blue-600/70 hover:bg-blue-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-copy"></i> Copiar Prompt</button>
-            <button id="saveCanvasBtn" class="bg-purple-600/70 hover:bg-purple-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-save"></i> Guardar</button>
         </div>
     </div>
 
     <div class="flex h-full">
-        <!-- Barra lateral de herramientas -->
-        <div class="w-16 bg-black/40 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-4 gap-4">
-            <button id="tool-rect" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="rect"><i class="fas fa-square text-xl"></i></button>
-            <button id="tool-circle" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="circle"><i class="fas fa-circle text-xl"></i></button>
-            <button id="tool-triangle" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="triangle"><i class="fas fa-play rotate-90 text-xl"></i></button>
-            <button id="tool-text" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="text"><i class="fas fa-font text-xl"></i></button>
-            <button id="tool-image" class="tool-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-shape="image"><i class="fas fa-image text-xl"></i></button>
-            <div class="h-px w-8 bg-white/20 my-2"></div>
-            <button id="deleteSelectedBtn" class="w-10 h-10 rounded-xl bg-red-600/40 hover:bg-red-600 flex items-center justify-center"><i class="fas fa-trash-alt"></i></button>
+        <!-- Barra lateral izquierda (herramientas) -->
+        <div class="w-20 bg-black/40 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-4 gap-3 overflow-y-auto">
+            <button id="tool-select" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="select"><i class="fas fa-mouse-pointer text-xl"></i></button>
+            <button id="tool-rect" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="rect"><i class="fas fa-square text-xl"></i></button>
+            <button id="tool-circle" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="circle"><i class="fas fa-circle text-xl"></i></button>
+            <button id="tool-triangle" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="triangle"><i class="fas fa-play rotate-90 text-xl"></i></button>
+            <button id="tool-line" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="line"><i class="fas fa-minus text-xl"></i></button>
+            <button id="tool-arrow" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="arrow"><i class="fas fa-long-arrow-alt-right text-xl"></i></button>
+            <button id="tool-star" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="star"><i class="fas fa-star text-xl"></i></button>
+            <button id="tool-heart" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="heart"><i class="fas fa-heart text-xl"></i></button>
+            <button id="tool-cloud" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="cloud"><i class="fas fa-cloud text-xl"></i></button>
+            <button id="tool-text" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="text"><i class="fas fa-font text-xl"></i></button>
+            <button id="tool-pencil" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="pencil"><i class="fas fa-pencil-alt text-xl"></i></button>
+            <div class="h-px w-8 bg-white/20 my-1"></div>
+            <button id="deleteSelectedBtn" class="w-12 h-12 rounded-xl bg-red-600/40 hover:bg-red-600 flex items-center justify-center"><i class="fas fa-trash-alt"></i></button>
+            <button id="saveToLibraryBtn" class="w-12 h-12 rounded-xl bg-amber-600/40 hover:bg-amber-600 flex items-center justify-center"><i class="fas fa-bookmark"></i></button>
         </div>
 
-        <!-- Panel de propiedades (derecha) -->
-        <div class="w-64 bg-black/40 backdrop-blur-md border-l border-white/10 p-3 flex flex-col gap-3 overflow-y-auto">
-            <h3 class="text-sm font-semibold"><i class="fas fa-sliders-h mr-1"></i> Propiedades</h3>
-            <div id="propertyPanel" class="text-xs space-y-2">
-                <p class="text-gray-400 italic">Selecciona un elemento</p>
+        <!-- Canvas central -->
+        <div class="flex-1 p-3">
+            <div id="canvas-container" class="w-full h-full rounded-xl border border-white/10"></div>
+        </div>
+
+        <!-- Panel derecho (Propiedades, Biblioteca, IA, Referencias, Notas, Timeline) -->
+        <div class="w-80 bg-black/40 backdrop-blur-md border-l border-white/10 p-3 flex flex-col gap-3 overflow-y-auto">
+            <!-- Propiedades del objeto seleccionado -->
+            <div class="bg-white/5 rounded-xl p-3">
+                <h3 class="text-sm font-semibold flex items-center gap-1"><i class="fas fa-sliders-h"></i> Propiedades</h3>
+                <div id="propertyPanel" class="text-xs space-y-2 mt-2">
+                    <p class="text-gray-400 italic">Selecciona un objeto</p>
+                </div>
             </div>
-            <div class="border-t border-white/20 pt-2 mt-2">
-                <h4 class="text-xs font-semibold mb-1">Referencias / Bocetos</h4>
-                <input type="file" id="refInput" accept="image/*" class="hidden" multiple>
-                <button id="uploadRefBtn" class="bg-white/10 w-full py-1 rounded text-xs"><i class="fas fa-upload"></i> Subir imagen de referencia</button>
-                <div id="refThumbs" class="flex flex-wrap gap-1 mt-2 max-h-28 overflow-auto"></div>
-                <input type="file" id="sketchInput" accept="image/*" class="hidden">
+
+            <!-- Biblioteca de diseños guardados -->
+            <div class="bg-white/5 rounded-xl p-3">
+                <h3 class="text-sm font-semibold flex items-center gap-1"><i class="fas fa-archive"></i> Mis diseños</h3>
+                <div id="libraryList" class="max-h-32 overflow-y-auto flex flex-wrap gap-2 mt-2 text-xs">
+                    <span class="text-gray-500">Guarda objetos que te gusten</span>
+                </div>
+            </div>
+
+            <!-- Referencias visuales -->
+            <div class="bg-white/5 rounded-xl p-3">
+                <h3 class="text-sm font-semibold"><i class="fas fa-images text-green-400"></i> Referencias / Bocetos</h3>
+                <input type="file" id="refUpload" accept="image/*" class="hidden" multiple>
+                <button id="uploadRefBtn" class="bg-white/10 w-full py-1 rounded text-xs mt-1"><i class="fas fa-upload"></i> Subir imagen(es)</button>
+                <div id="refThumbs" class="flex flex-wrap gap-1 mt-2 max-h-20 overflow-auto"></div>
+                <input type="file" id="sketchUpload" accept="image/*" class="hidden">
                 <button id="uploadSketchBtn" class="bg-white/10 w-full py-1 rounded text-xs mt-2"><i class="fas fa-draw-polygon"></i> Subir boceto</button>
                 <div id="sketchPreview" class="mt-1 text-center text-[10px] text-gray-400"></div>
             </div>
-            <div class="border-t border-white/20 pt-2">
-                <h4 class="text-xs font-semibold">Notas</h4>
-                <textarea id="quickNotes" rows="2" class="w-full bg-black/40 border border-white/20 rounded text-xs p-1" placeholder="Ideas, observaciones..."></textarea>
-            </div>
-        </div>
 
-        <!-- Canvas principal -->
-        <div id="canvasContainer" class="flex-1 relative">
-            <!-- Los elementos se inyectan aquí con posicionamiento absoluto -->
+            <!-- Asistente IA -->
+            <div class="bg-white/5 rounded-xl p-3">
+                <h3 class="text-sm font-semibold"><i class="fas fa-robot text-purple-400"></i> Asistente IA</h3>
+                <div id="aiMessages" class="h-28 overflow-y-auto text-xs space-y-1 bg-black/30 rounded p-1 mt-1"></div>
+                <button id="askAiBtn" class="bg-purple-600/70 hover:bg-purple-600 w-full mt-1 py-1 rounded text-xs"><i class="fas fa-magic"></i> Sugerir mejoras</button>
+            </div>
+
+            <!-- Notas rápidas -->
+            <div class="bg-white/5 rounded-xl p-3">
+                <h3 class="text-sm font-semibold"><i class="fas fa-sticky-note text-yellow-300"></i> Notas</h3>
+                <textarea id="quickNotes" rows="2" class="w-full bg-black/40 border border-white/20 rounded text-xs p-1" placeholder="Captura ideas..."></textarea>
+            </div>
+
+            <!-- Timeline / Memoria -->
+            <div class="bg-white/5 rounded-xl p-3">
+                <h3 class="text-sm font-semibold flex justify-between"><span><i class="fas fa-history"></i> Timeline</span><button id="clearTimelineBtn" class="text-red-400 text-[10px]">Limpiar</button></h3>
+                <div id="timelineList" class="h-28 overflow-y-auto text-[10px] mt-1 space-y-1"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        // ---------------- MODELO ----------------
-        let elements = []; // { id, shape, x, y, w, h, content (texto o url), color, rotation? }
-        let selectedId = null;
-        let nextId = 100;
-        let references = []; // urls de imágenes
+        // Inicializar Fabric.js canvas
+        const canvas = new fabric.Canvas('canvas-container', {
+            backgroundColor: 'rgba(0,0,0,0)',
+            selection: true,
+            preserveObjectStacking: true,
+            width: window.innerWidth - 450, // ajuste dinámico
+            height: window.innerHeight - 80
+        });
+        // Resize handler
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.setWidth(container.clientWidth);
+            canvas.setHeight(container.clientHeight);
+            canvas.renderAll();
+        }
+        window.addEventListener('resize', () => setTimeout(resizeCanvas, 100));
+        setTimeout(resizeCanvas, 100);
+
+        // Estado global
+        let currentTool = 'select';
+        let isDrawingMode = false;
+        let historyStack = [];
+        let historyIndex = -1;
+        let timelineEvents = [];
+        let library = []; // { id, name, dataURL (json), thumbnail }
+        let references = [];
         let sketchData = null;
-        let dragTarget = null;
-        let dragOffsetX = 0, dragOffsetY = 0;
-        let resizeTarget = null;
-        
-        const canvas = document.getElementById('canvasContainer');
-        let activeShape = 'rect'; // por defecto
+        let selectedObject = null;
 
-        // Helper: generar prompt visual geométrico
-        function generateGeometricPrompt() {
-            let prompt = `=== VISUAL PROMPT GEOMÉTRICO PARA IA ===\n`;
-            prompt += `La interfaz debe respetar EXACTAMENTE las siguientes formas, posiciones y tamaños relativos al contenedor principal (${canvas.clientWidth}px de ancho, ${canvas.clientHeight}px de alto).\n\n`;
-            prompt += `Elementos (ordenados por capa, los primeros son los más inferiores si se solapan):\n`;
-            elements.forEach((el, idx) => {
-                let shapeDesc = '';
-                switch(el.shape) {
-                    case 'rect': shapeDesc = 'rectángulo'; break;
-                    case 'circle': shapeDesc = 'círculo/elipse'; break;
-                    case 'triangle': shapeDesc = 'triángulo (apuntando hacia arriba)'; break;
-                    case 'text': shapeDesc = 'caja de texto'; break;
-                    case 'image': shapeDesc = 'imagen'; break;
-                }
-                prompt += `${idx+1}. ${shapeDesc.toUpperCase()}:\n`;
-                prompt += `   - Posición: X=${el.x}px, Y=${el.y}px (esquina superior izquierda del bounding box)\n`;
-                prompt += `   - Tamaño: ancho=${el.w}px, alto=${el.h}px\n`;
-                if(el.shape === 'text') prompt += `   - Contenido textual: "${el.content || 'texto de ejemplo'}"\n`;
-                if(el.shape === 'image') prompt += `   - Fuente de imagen: ${el.content || 'url_de_imagen'}\n`;
-                if(el.shape !== 'text' && el.shape !== 'image') prompt += `   - Color/estilo: fondo semitransparente azul, borde azul (personalizable)\n`;
-                prompt += `\n`;
-            });
-            if(references.length) prompt += `\nReferencias visuales subidas: ${references.length} imagen(es) - se deben tomar como inspiración de estilo.\n`;
-            if(sketchData) prompt += `\nBoceto original: el usuario subió un dibujo; interpreta su disposición aproximada.\n`;
-            prompt += `\nINSTRUCCIÓN: Construye la interfaz respetando estas posiciones y formas exactas. Los elementos deben poder ser arrastrables/redimensionables en la versión final? (seguir especificación)`;
-            return prompt;
+        // --- Funciones auxiliares ---
+        function addTimelineEvent(action, detail) {
+            const event = { timestamp: new Date().toLocaleTimeString(), action, detail };
+            timelineEvents.unshift(event);
+            renderTimeline();
+            saveToLocalStorage();
         }
 
-        // Renderizar todos los elementos en el DOM (actualización completa)
-        function renderElements() {
-            canvas.querySelectorAll('.canvas-element').forEach(el => el.remove());
-            elements.forEach(el => {
-                const div = document.createElement('div');
-                div.className = `canvas-element ${selectedId === el.id ? 'selected' : ''}`;
-                div.style.left = `${el.x}px`;
-                div.style.top = `${el.y}px`;
-                div.style.width = `${el.w}px`;
-                div.style.height = `${el.h}px`;
-                div.style.position = 'absolute';
-                div.setAttribute('data-id', el.id);
-                
-                // Contenido según shape
-                if(el.shape === 'text') {
-                    div.innerText = el.content || 'Texto';
-                    div.style.background = 'rgba(0,0,0,0.6)';
-                    div.style.display = 'flex';
-                    div.style.alignItems = 'center';
-                    div.style.justifyContent = 'center';
-                } else if(el.shape === 'image' && el.content) {
-                    const img = document.createElement('img');
-                    img.src = el.content;
-                    img.style.width = '100%';
-                    img.style.height = '100%';
-                    img.style.objectFit = 'cover';
-                    div.appendChild(img);
-                } else if(el.shape === 'circle') {
-                    div.style.borderRadius = '50%';
-                    div.style.background = 'rgba(59,130,246,0.3)';
-                    div.innerText = el.content || '●';
-                } else if(el.shape === 'triangle') {
-                    // pintar un triángulo con clip-path
-                    div.style.background = 'rgba(59,130,246,0.3)';
-                    div.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
-                    div.innerText = '';
-                    div.style.display = 'flex';
-                    div.style.alignItems = 'flex-end';
-                    div.style.justifyContent = 'center';
-                    div.innerText = el.content || '▲';
-                } else {
-                    // rectángulo por defecto
-                    div.style.background = 'rgba(59,130,246,0.3)';
-                    div.innerText = el.content || '📦';
-                }
-                
-                // Botón eliminar
-                const removeBtn = document.createElement('div');
-                removeBtn.className = 'element-remove';
-                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-                removeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteElement(el.id);
-                });
-                div.appendChild(removeBtn);
-                
-                // Manejadores de arrastre
-                div.addEventListener('mousedown', (e) => {
-                    if(e.target === removeBtn) return;
-                    e.stopPropagation();
-                    selectedId = el.id;
-                    renderElements(); // refrescar selección
-                    updatePropertyPanel();
-                    startDrag(e, el.id);
-                });
-                
-                canvas.appendChild(div);
-            });
-            // Añadir manejadores de redimensionamiento (simple: esquina inferior derecha)
-            document.querySelectorAll('.canvas-element').forEach(elDiv => {
-                const id = parseInt(elDiv.dataset.id);
-                const resizeHandle = document.createElement('div');
-                resizeHandle.className = 'resize-handle';
-                resizeHandle.addEventListener('mousedown', (e) => {
-                    e.stopPropagation();
-                    startResize(e, id);
-                });
-                elDiv.appendChild(resizeHandle);
-            });
-        }
-        
-        // Lógica de arrastre
-        let isDragging = false;
-        function startDrag(e, id) {
-            const el = elements.find(e => e.id === id);
-            if(!el) return;
-            dragTarget = id;
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            dragOffsetX = mouseX - el.x;
-            dragOffsetY = mouseY - el.y;
-            isDragging = true;
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-        }
-        
-        function onMouseMove(e) {
-            if(!isDragging || dragTarget === null) return;
-            const rect = canvas.getBoundingClientRect();
-            let newX = e.clientX - rect.left - dragOffsetX;
-            let newY = e.clientY - rect.top - dragOffsetY;
-            // límites
-            newX = Math.min(Math.max(0, newX), canvas.clientWidth - (elements.find(el=>el.id===dragTarget)?.w || 100));
-            newY = Math.min(Math.max(0, newY), canvas.clientHeight - (elements.find(el=>el.id===dragTarget)?.h || 100));
-            const el = elements.find(e => e.id === dragTarget);
-            if(el) {
-                el.x = newX;
-                el.y = newY;
-                renderElements();
-            }
-        }
-        
-        function onMouseUp() {
-            isDragging = false;
-            dragTarget = null;
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-            saveToLocalStorage();
-        }
-        
-        // Redimensionamiento simple (esquina inferior derecha)
-        let resizeElementId = null;
-        let startW, startH, startX, startY;
-        function startResize(e, id) {
-            e.stopPropagation();
-            const el = elements.find(e => e.id === id);
-            if(!el) return;
-            resizeElementId = id;
-            startW = el.w;
-            startH = el.h;
-            startX = e.clientX;
-            startY = e.clientY;
-            document.addEventListener('mousemove', onResizeMove);
-            document.addEventListener('mouseup', onResizeUp);
-        }
-        
-        function onResizeMove(e) {
-            if(!resizeElementId) return;
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            const el = elements.find(e => e.id === resizeElementId);
-            if(el) {
-                el.w = Math.max(30, startW + deltaX);
-                el.h = Math.max(30, startH + deltaY);
-                renderElements();
-            }
-        }
-        
-        function onResizeUp() {
-            resizeElementId = null;
-            document.removeEventListener('mousemove', onResizeMove);
-            document.removeEventListener('mouseup', onResizeUp);
-            saveToLocalStorage();
-        }
-        
-        function deleteElement(id) {
-            elements = elements.filter(e => e.id !== id);
-            if(selectedId === id) selectedId = null;
-            renderElements();
-            updatePropertyPanel();
-            saveToLocalStorage();
-        }
-        
-        function addElement(shape, x, y, w, h, content = '') {
-            const newEl = {
-                id: nextId++,
-                shape: shape,
-                x: x, y: y, w: w, h: h,
-                content: content
-            };
-            if(shape === 'text') newEl.content = content || 'Nuevo texto';
-            if(shape === 'image') newEl.content = content || '';
-            elements.push(newEl);
-            selectedId = newEl.id;
-            renderElements();
-            updatePropertyPanel();
-            saveToLocalStorage();
-        }
-        
-        function updatePropertyPanel() {
-            const panel = document.getElementById('propertyPanel');
-            if(!selectedId) {
-                panel.innerHTML = '<p class="text-gray-400 italic">Selecciona un elemento</p>';
+        function renderTimeline() {
+            const container = document.getElementById('timelineList');
+            if(timelineEvents.length === 0) {
+                container.innerHTML = '<div class="text-gray-500">Sin actividad</div>';
                 return;
             }
-            const el = elements.find(e => e.id === selectedId);
-            if(!el) return;
-            panel.innerHTML = `
-                <div><label class="block text-gray-300">Forma: ${el.shape}</label></div>
-                <div><label>Contenido:</label><input id="propContent" type="text" value="${el.content || ''}" class="w-full"></div>
-                <div><label>X:</label><input id="propX" type="number" value="${el.x}" class="w-full"></div>
-                <div><label>Y:</label><input id="propY" type="number" value="${el.y}" class="w-full"></div>
-                <div><label>Ancho:</label><input id="propW" type="number" value="${el.w}" class="w-full"></div>
-                <div><label>Alto:</label><input id="propH" type="number" value="${el.h}" class="w-full"></div>
-                <button id="applyPropsBtn" class="bg-blue-600 w-full py-1 rounded text-xs mt-2">Aplicar cambios</button>
-            `;
-            document.getElementById('applyPropsBtn')?.addEventListener('click', () => {
-                const content = document.getElementById('propContent').value;
-                const x = parseInt(document.getElementById('propX').value);
-                const y = parseInt(document.getElementById('propY').value);
-                const w = parseInt(document.getElementById('propW').value);
-                const h = parseInt(document.getElementById('propH').value);
-                if(!isNaN(x)) el.x = x;
-                if(!isNaN(y)) el.y = y;
-                if(!isNaN(w)) el.w = w;
-                if(!isNaN(h)) el.h = h;
-                el.content = content;
-                if(el.shape === 'image' && content) el.content = content;
-                renderElements();
-                saveToLocalStorage();
-                updatePropertyPanel();
-            });
+            container.innerHTML = timelineEvents.slice(0, 25).map(ev => `
+                <div class="timeline-item">
+                    <span class="text-blue-300">[${ev.timestamp}]</span> <strong>${ev.action}</strong> ${ev.detail ? `: ${ev.detail}` : ''}
+                </div>
+            `).join('');
         }
-        
-        // Guardar/cargar localStorage
+
         function saveToLocalStorage() {
+            const canvasState = JSON.stringify(canvas.toJSON(['purpose']));
             const state = {
-                elements, nextId, references, sketchData,
+                canvasState,
+                library,
+                references,
+                sketchData,
                 notes: document.getElementById('quickNotes').value,
-                canvasSize: { w: canvas.clientWidth, h: canvas.clientHeight }
+                timelineEvents
             };
-            localStorage.setItem('vpo_freecanvas', JSON.stringify(state));
+            localStorage.setItem('vpo_final_project', JSON.stringify(state));
+            addTimelineEvent('Guardado automático', 'proyecto persistido');
         }
-        
+
         function loadFromLocalStorage() {
-            const raw = localStorage.getItem('vpo_freecanvas');
-            if(raw) {
-                try {
-                    const state = JSON.parse(raw);
-                    elements = state.elements || [];
-                    nextId = state.nextId || 100;
-                    references = state.references || [];
-                    sketchData = state.sketchData || null;
-                    document.getElementById('quickNotes').value = state.notes || '';
-                    renderElements();
-                    renderReferences();
-                    renderSketch();
-                    updatePropertyPanel();
-                } catch(e) { resetCanvas(); }
-            } else {
-                resetCanvas();
+            const raw = localStorage.getItem('vpo_final_project');
+            if(!raw) {
+                addExampleObjects();
+                return;
             }
+            try {
+                const state = JSON.parse(raw);
+                if(state.canvasState) {
+                    canvas.loadFromJSON(state.canvasState, () => {
+                        canvas.renderAll();
+                        canvas.getObjects().forEach(obj => obj.set('selectable', true));
+                    });
+                }
+                library = state.library || [];
+                references = state.references || [];
+                sketchData = state.sketchData || null;
+                document.getElementById('quickNotes').value = state.notes || '';
+                timelineEvents = state.timelineEvents || [];
+                renderLibrary();
+                renderReferences();
+                renderSketch();
+                renderTimeline();
+            } catch(e) { addExampleObjects(); }
         }
-        
-        function resetCanvas() {
-            elements = [];
-            nextId = 100;
-            references = [];
-            sketchData = null;
-            document.getElementById('quickNotes').value = '';
-            renderElements();
-            renderReferences();
-            renderSketch();
-            updatePropertyPanel();
+
+        function addExampleObjects() {
+            // Agregar unos ejemplos para demostración: un rectángulo y un texto
+            const rect = new fabric.Rect({
+                left: 50, top: 50, width: 150, height: 80,
+                fill: 'rgba(59,130,246,0.3)', stroke: '#3b82f6', strokeWidth: 2,
+                purpose: 'Barra de título'
+            });
+            const text = new fabric.Text('Título principal', {
+                left: 70, top: 70, fontSize: 20, fill: 'white',
+                purpose: 'Texto de cabecera'
+            });
+            canvas.add(rect, text);
+            canvas.renderAll();
+            addTimelineEvent('Ejemplos iniciales', 'rectángulo y texto añadidos');
+        }
+
+        // Guardar objeto seleccionado en biblioteca
+        function saveSelectedToLibrary() {
+            const obj = canvas.getActiveObject();
+            if(!obj) { alert("Selecciona un objeto primero"); return; }
+            const name = prompt("Nombre para este diseño:", obj.purpose || "Mi diseño");
+            if(!name) return;
+            const objData = JSON.stringify(obj.toJSON(['purpose']));
+            const thumbnail = obj.toDataURL({ multiplier: 0.2 });
+            const newItem = { id: Date.now(), name, data: objData, thumbnail };
+            library.push(newItem);
+            renderLibrary();
+            addTimelineEvent('Guardado en biblioteca', `${name}`);
             saveToLocalStorage();
         }
-        
+
+        function renderLibrary() {
+            const container = document.getElementById('libraryList');
+            if(library.length === 0) {
+                container.innerHTML = '<span class="text-gray-500 text-xs">Guarda objetos que te gusten</span>';
+                return;
+            }
+            container.innerHTML = library.map(item => `
+                <div class="library-item w-20 text-center" data-id="${item.id}">
+                    <img src="${item.thumbnail}" class="w-16 h-16 object-contain bg-white/5 rounded mb-1">
+                    <span class="text-[10px] block truncate">${item.name}</span>
+                </div>
+            `).join('');
+            document.querySelectorAll('.library-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const id = parseInt(el.dataset.id);
+                    const item = library.find(i => i.id === id);
+                    if(item) {
+                        fabric.util.enlivenObjects([JSON.parse(item.data)], (objects) => {
+                            const obj = objects[0];
+                            obj.set({ left: 100, top: 100 });
+                            canvas.add(obj);
+                            canvas.setActiveObject(obj);
+                            canvas.renderAll();
+                            addTimelineEvent('Insertado de biblioteca', item.name);
+                            saveToLocalStorage();
+                        });
+                    }
+                });
+            });
+        }
+
+        // Referencias visuales
         function renderReferences() {
             const container = document.getElementById('refThumbs');
             if(!references.length) { container.innerHTML = '<span class="text-gray-500 text-[10px]">Sin referencias</span>'; return; }
-            container.innerHTML = references.map(url => `<div class="relative"><img src="${url}" class="w-12 h-12 object-cover rounded border border-white/20"><button class="remove-ref absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-[8px]" data-url="${url}">✕</button></div>`).join('');
+            container.innerHTML = references.map((url, idx) => `
+                <div class="relative w-12 h-12">
+                    <img src="${url}" class="w-full h-full object-cover rounded border border-white/20">
+                    <button class="remove-ref absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-[8px]" data-idx="${idx}">✕</button>
+                </div>
+            `).join('');
             document.querySelectorAll('.remove-ref').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const url = btn.dataset.url;
-                    references = references.filter(r => r !== url);
+                    const idx = parseInt(btn.dataset.idx);
+                    references.splice(idx, 1);
                     renderReferences();
                     saveToLocalStorage();
                 });
             });
         }
-        
+
         function renderSketch() {
             const container = document.getElementById('sketchPreview');
             if(sketchData) {
-                container.innerHTML = `<img src="${sketchData}" class="max-h-16 rounded border border-amber-400"><button id="clearSketchBtn" class="text-red-400 text-[10px] ml-1">Eliminar</button>`;
+                container.innerHTML = `<img src="${sketchData}" class="max-h-12 rounded border border-amber-400"><button id="clearSketchBtn" class="text-red-400 text-[10px] ml-1">Eliminar</button>`;
                 document.getElementById('clearSketchBtn')?.addEventListener('click', () => { sketchData = null; renderSketch(); saveToLocalStorage(); });
             } else {
                 container.innerHTML = '<span class="text-gray-500 text-[10px]">Ningún boceto</span>';
             }
         }
-        
-        // Eventos UI
-        document.getElementById('tool-rect').addEventListener('click', () => { activeShape = 'rect'; });
-        document.getElementById('tool-circle').addEventListener('click', () => { activeShape = 'circle'; });
-        document.getElementById('tool-triangle').addEventListener('click', () => { activeShape = 'triangle'; });
-        document.getElementById('tool-text').addEventListener('click', () => { activeShape = 'text'; });
-        document.getElementById('tool-image').addEventListener('click', () => { 
-            activeShape = 'image';
-            const url = prompt('Ingresa URL de la imagen (o deja vacío para subir una local)');
-            if(url && url.startsWith('http')) {
-                addElement('image', 100, 100, 150, 150, url);
-            } else {
-                // subir archivo local
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if(file) {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                            addElement('image', 100, 100, 150, 150, ev.target.result);
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                };
-                input.click();
+
+        // --- Herramientas de dibujo (formas predefinidas) ---
+        function addShape(type) {
+            let shape;
+            const colors = ['rgba(59,130,246,0.3)', 'rgba(168,85,247,0.3)'];
+            const stroke = '#3b82f6';
+            switch(type) {
+                case 'rect':
+                    shape = new fabric.Rect({ width: 120, height: 80, fill: colors[0], stroke, strokeWidth: 2, purpose: 'Rectángulo' });
+                    break;
+                case 'circle':
+                    shape = new fabric.Circle({ radius: 40, fill: colors[0], stroke, strokeWidth: 2, purpose: 'Círculo' });
+                    break;
+                case 'triangle':
+                    shape = new fabric.Triangle({ width: 80, height: 80, fill: colors[0], stroke, strokeWidth: 2, purpose: 'Triángulo' });
+                    break;
+                case 'line':
+                    shape = new fabric.Line([0,0,100,0], { stroke: 'white', strokeWidth: 3, purpose: 'Línea' });
+                    break;
+                case 'arrow':
+                    shape = new fabric.Triangle({ width: 20, height: 20, fill: 'white', left: 100, top: 0, angle: 90 });
+                    const line = new fabric.Line([0,0,80,0], { stroke: 'white', strokeWidth: 2 });
+                    shape = new fabric.Group([line, shape], { left: 100, top: 100, purpose: 'Flecha' });
+                    break;
+                case 'star':
+                    const starPath = "M 0,-40 L 10,-10 L 40,-10 L 15,10 L 25,40 L 0,20 L -25,40 L -15,10 L -40,-10 L -10,-10 Z";
+                    shape = new fabric.Path(starPath, { fill: colors[0], stroke, strokeWidth: 2, scaleX: 0.8, scaleY: 0.8, purpose: 'Estrella' });
+                    break;
+                case 'heart':
+                    const heartPath = "M 0,-20 A 15,15 0 0,1 30,-20 A 15,15 0 0,1 60,-20 Q 60,10 30,40 Q 0,10 0,-20 Z";
+                    shape = new fabric.Path(heartPath, { fill: 'rgba(236,72,153,0.5)', stroke: '#ec4899', strokeWidth: 2, purpose: 'Corazón' });
+                    break;
+                case 'cloud':
+                    const cloudPath = "M 30,40 a 20,20 0 0,1 0,-40 a 25,25 0 0,1 45,-5 a 20,20 0 0,1 35,15 a 15,15 0 0,1 0,30 z";
+                    shape = new fabric.Path(cloudPath, { fill: colors[0], stroke, strokeWidth: 2, scaleX: 1.2, purpose: 'Nube' });
+                    break;
+                default: return;
             }
-        });
-        
-        // Hacer clic en canvas para agregar elemento (con la herramienta activa)
-        canvas.addEventListener('click', (e) => {
-            if(e.target !== canvas && e.target.classList?.contains('canvas-element') === false && e.target.id !== 'canvasContainer') return;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left - 50;
-            const y = e.clientY - rect.top - 50;
-            if(activeShape === 'rect') addElement('rect', Math.max(0,x), Math.max(0,y), 120, 100, 'Rectángulo');
-            else if(activeShape === 'circle') addElement('circle', Math.max(0,x), Math.max(0,y), 100, 100, 'Círculo');
-            else if(activeShape === 'triangle') addElement('triangle', Math.max(0,x), Math.max(0,y), 100, 100, '▲');
-            else if(activeShape === 'text') {
-                const txt = prompt('Texto del elemento:', 'Nuevo texto');
-                if(txt) addElement('text', Math.max(0,x), Math.max(0,y), 120, 50, txt);
-            }
-        });
-        
-        document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
-            if(selectedId) deleteElement(selectedId);
-        });
-        document.getElementById('clearCanvasBtn').addEventListener('click', () => {
-            if(confirm('Eliminar todos los elementos?')) resetCanvas();
-        });
-        document.getElementById('exportPromptBtn').addEventListener('click', () => {
-            const prompt = generateGeometricPrompt();
-            alert('Prompt generado. Cópialo con el botón "Copiar Prompt"');
-        });
-        document.getElementById('copyPromptBtn').addEventListener('click', async () => {
-            const prompt = generateGeometricPrompt();
-            await navigator.clipboard.writeText(prompt);
-            alert('Prompt Visual Geométrico copiado al portapapeles.');
-        });
-        document.getElementById('saveCanvasBtn').addEventListener('click', () => saveToLocalStorage());
-        
-        // Subir referencias
-        document.getElementById('uploadRefBtn').addEventListener('click', () => document.getElementById('refInput').click());
-        document.getElementById('refInput').addEventListener('change', (e) => {
-            Array.from(e.target.files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    references.push(ev.target.result);
-                    renderReferences();
-                    saveToLocalStorage();
-                };
-                reader.readAsDataURL(file);
+            shape.set({ left: 150, top: 150 });
+            canvas.add(shape);
+            canvas.setActiveObject(shape);
+            canvas.renderAll();
+            addTimelineEvent(`Añadido ${type}`, '');
+            saveToLocalStorage();
+        }
+
+        function addText() {
+            const text = new fabric.IText('Nuevo texto', {
+                left: 150, top: 150, fontSize: 20, fill: 'white', purpose: 'Texto'
             });
-        });
-        document.getElementById('uploadSketchBtn').addEventListener('click', () => document.getElementById('sketchInput').click());
-        document.getElementById('sketchInput').addEventListener('change', (e) => {
-            if(e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    sketchData = ev.target.result;
-                    renderSketch();
-                    saveToLocalStorage();
-                };
-                reader.readAsDataURL(e.target.files[0]);
+            canvas.add(text);
+            canvas.setActiveObject(text);
+            canvas.renderAll();
+            addTimelineEvent('Añadido texto', '');
+            saveToLocalStorage();
+        }
+
+        // --- Dibujo libre (lápiz) ---
+        function enableDrawing() {
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush.color = '#3b82f6';
+            canvas.freeDrawingBrush.width = 3;
+            currentTool = 'pencil';
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tool-pencil').classList.add('active');
+        }
+        function disableDrawing() {
+            canvas.isDrawingMode = false;
+        }
+
+        // --- Selección de herramienta ---
+        function setTool(tool) {
+            disableDrawing();
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            if(tool === 'pencil') {
+                enableDrawing();
+            } else {
+                if(tool === 'select') canvas.selection = true;
+                else canvas.selection = false;
             }
-        });
+            const btnMap = { select:'tool-select', rect:'tool-rect', circle:'tool-circle', triangle:'tool-triangle', line:'tool-line', arrow:'tool-arrow', star:'tool-star', heart:'tool-heart', cloud:'tool-cloud', text:'tool-text', pencil:'tool-pencil' };
+            if(btnMap[tool]) document.getElementById(btnMap[tool]).classList.add('active');
+        }
+
+        // --- IA Asistente ---
+        function aiSuggestion() {
+            const objects = canvas.getObjects();
+            let msg = "";
+            if(objects.length === 0) msg = "No hay elementos. Empieza dibujando formas o texto.";
+            else {
+                const hasPurpose = objects.some(obj => obj.purpose && obj.purpose !== "");
+                if(!hasPurpose) msg = "Sugerencia: Agrega etiquetas semánticas a tus elementos (ej: 'barra de navegación', 'botón principal') para mejorar el prompt visual.";
+                else {
+                    const rects = objects.filter(obj => obj.type === 'rect');
+                    if(rects.length > 3) msg = "Hay varios rectángulos. Verifica que la jerarquía visual (tamaños y posiciones) refleje la importancia de cada elemento.";
+                    else msg = "Buena estructura. Puedes guardar algún elemento que te guste en 'Mis diseños' para reutilizarlo después.";
+                }
+            }
+            const aiDiv = document.getElementById('aiMessages');
+            const newMsg = document.createElement('div');
+            newMsg.className = 'text-blue-300';
+            newMsg.innerHTML = `🤖 ${msg}`;
+            aiDiv.appendChild(newMsg);
+            aiDiv.scrollTop = aiDiv.scrollHeight;
+            addTimelineEvent('Asistente IA', msg.substring(0,50));
+        }
+
+        // --- Generar Prompt Visual ---
+        function generateVisualPrompt() {
+            const objects = canvas.getObjects();
+            let prompt = "=== VISUAL PROMPT ORCHESTRATOR (VPO) ===\n";
+            prompt += "La siguiente disposición debe ser respetada EXACTAMENTE por la IA constructora:\n\n";
+            objects.forEach((obj, idx) => {
+                let type = obj.type;
+                if(obj.path) type = "forma personalizada";
+                let left = Math.round(obj.left);
+                let top = Math.round(obj.top);
+                let width = Math.round(obj.width * obj.scaleX);
+                let height = Math.round(obj.height * obj.scaleY);
+                let purpose = obj.purpose || "sin etiqueta";
+                prompt += `${idx+1}. ${type.toUpperCase()} - Propósito: "${purpose}"\n`;
+                prompt += `   Posición: X=${left}px, Y=${top}px | Tamaño: ${width}x${height}px\n`;
+                if(obj.text) prompt += `   Contenido textual: "${obj.text}"\n`;
+                prompt += "\n";
+            });
+            prompt += `Notas del proyecto: ${document.getElementById('quickNotes').value}\n`;
+            if(references.length) prompt += `Referencias visuales: ${references.length} imágenes subidas (inspiración de estilo).\n`;
+            if(sketchData) prompt += `Boceto original disponible.\n`;
+            prompt += `Instrucción final: Genera código HTML/CSS/JS que reproduzca esta estructura con posicionamiento absoluto, respetando tamaños y etiquetas.`;
+            return prompt;
+        }
+
+        async function copyPrompt() {
+            const prompt = generateVisualPrompt();
+            await navigator.clipboard.writeText(prompt);
+            alert("Prompt Visual copiado al portapapeles. Pégalo en ChatGPT, Claude o cualquier IA.");
+            addTimelineEvent('Prompt copiado', '');
+        }
+
+        function exportToAI(aiName) {
+            const prompt = generateVisualPrompt();
+            const encoded = encodeURIComponent(prompt);
+            let url = '';
+            switch(aiName) {
+                case 'ChatGPT': url = `https://chat.openai.com/?q=${encoded}`; break;
+                case 'Claude': url = `https://claude.ai/new?q=${encoded}`; break;
+                case 'Gemini': url = `https://gemini.google.com/?q=${encoded}`; break;
+                default: url = `https://www.google.com/search?q=IA+constructor+${aiName}`;
+            }
+            window.open(url, '_blank');
+            addTimelineEvent(`Exportado a ${aiName}`, '');
+        }
+
+        // --- Manejo de eventos del canvas (selección, modificaciones) ---
+        canvas.on('object:modified', () => { saveToLocalStorage(); addTimelineEvent('Modificado', 'objeto'); });
+        canvas.on('object:added', () => { saveToLocalStorage(); addTimelineEvent('Añadido', 'objeto'); });
+        canvas.on('object:removed', () => { saveToLocalStorage(); addTimelineEvent('Eliminado', 'objeto'); });
+        canvas.on('selection:created', (e) => { selectedObject = e.selected?.[0]; updatePropertyPanel(); });
+        canvas.on('selection:updated', (e) => { selectedObject = e.selected?.[0]; updatePropertyPanel(); });
+        canvas.on('selection:cleared', () => { selectedObject = null; updatePropertyPanel(); });
+
+        function updatePropertyPanel() {
+            const panel = document.getElementById('propertyPanel');
+            if(!selectedObject) {
+                panel.innerHTML = '<p class="text-gray-400 italic">Selecciona un objeto</p>';
+                return;
+            }
+            const obj = selectedObject;
+            panel.innerHTML = `
+                <div><label>Tipo: ${obj.type}</label></div>
+                <div><label>Propósito semántico:</label><input id="objPurpose" value="${obj.purpose || ''}" placeholder="ej: barra de título"></div>
+                <div><label>Posición X:</label><input id="objX" type="number" value="${Math.round(obj.left)}" step="1"></div>
+                <div><label>Posición Y:</label><input id="objY" type="number" value="${Math.round(obj.top)}" step="1"></div>
+                <div><label>Ancho:</label><input id="objW" type="number" value="${Math.round(obj.width * obj.scaleX)}" step="1"></div>
+                <div><label>Alto:</label><input id="objH" type="number" value="${Math.round(obj.height * obj.scaleY)}" step="1"></div>
+                <button id="applyProps" class="bg-blue-600 w-full py-1 rounded text-xs mt-2">Aplicar</button>
+            `;
+            document.getElementById('applyProps')?.addEventListener('click', () => {
+                obj.purpose = document.getElementById('objPurpose').value;
+                let x = parseInt(document.getElementById('objX').value);
+                let y = parseInt(document.getElementById('objY').value);
+                let w = parseInt(document.getElementById('objW').value);
+                let h = parseInt(document.getElementById('objH').value);
+                if(!isNaN(x)) obj.left = x;
+                if(!isNaN(y)) obj.top = y;
+                if(!isNaN(w) && w>0) obj.scaleX = w / obj.width;
+                if(!isNaN(h) && h>0) obj.scaleY = h / obj.height;
+                obj.setCoords();
+                canvas.renderAll();
+                saveToLocalStorage();
+                updatePropertyPanel();
+                addTimelineEvent('Propiedades actualizadas', obj.purpose);
+            });
+        }
+
+        // --- Guardar/Deshacer/Rehacer (simple) ---
+        function saveHistory() { /* omitimos implementación completa por brevedad, pero se puede extender */ }
         
-        // Inicialización
+        // --- Inicialización de UI y eventos ---
+        function initUI() {
+            document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
+            document.getElementById('tool-rect').addEventListener('click', () => { setTool('rect'); addShape('rect'); });
+            document.getElementById('tool-circle').addEventListener('click', () => { setTool('circle'); addShape('circle'); });
+            document.getElementById('tool-triangle').addEventListener('click', () => { setTool('triangle'); addShape('triangle'); });
+            document.getElementById('tool-line').addEventListener('click', () => { setTool('line'); addShape('line'); });
+            document.getElementById('tool-arrow').addEventListener('click', () => { setTool('arrow'); addShape('arrow'); });
+            document.getElementById('tool-star').addEventListener('click', () => { setTool('star'); addShape('star'); });
+            document.getElementById('tool-heart').addEventListener('click', () => { setTool('heart'); addShape('heart'); });
+            document.getElementById('tool-cloud').addEventListener('click', () => { setTool('cloud'); addShape('cloud'); });
+            document.getElementById('tool-text').addEventListener('click', () => { setTool('text'); addText(); });
+            document.getElementById('tool-pencil').addEventListener('click', () => setTool('pencil'));
+            document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
+                const active = canvas.getActiveObject();
+                if(active) canvas.remove(active);
+                canvas.discardActiveObject();
+                canvas.renderAll();
+                addTimelineEvent('Eliminado objeto', '');
+                saveToLocalStorage();
+            });
+            document.getElementById('saveToLibraryBtn').addEventListener('click', saveSelectedToLibrary);
+            document.getElementById('askAiBtn').addEventListener('click', aiSuggestion);
+            document.getElementById('generatePromptBtn').addEventListener('click', () => { generateVisualPrompt(); alert('Prompt generado. Cópialo con el botón "Copiar Prompt"'); });
+            document.getElementById('copyPromptBtn').addEventListener('click', copyPrompt);
+            document.getElementById('clearCanvasBtn').addEventListener('click', () => {
+                if(confirm('¿Eliminar todos los objetos?')) {
+                    canvas.clear();
+                    canvas.backgroundColor = 'rgba(0,0,0,0)';
+                    canvas.renderAll();
+                    addTimelineEvent('Canvas limpiado', '');
+                    saveToLocalStorage();
+                }
+            });
+            document.getElementById('undoBtn').addEventListener('click', () => { /* placeholder */ alert('Funcionalidad de deshacer compleja; usa guardado automático.'); });
+            document.getElementById('redoBtn').addEventListener('click', () => { alert('Rehacer no implementado aún'); });
+            document.getElementById('clearTimelineBtn').addEventListener('click', () => { timelineEvents = []; renderTimeline(); saveToLocalStorage(); });
+            // Referencias
+            document.getElementById('uploadRefBtn').addEventListener('click', () => document.getElementById('refUpload').click());
+            document.getElementById('refUpload').addEventListener('change', (e) => {
+                Array.from(e.target.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        references.push(ev.target.result);
+                        renderReferences();
+                        saveToLocalStorage();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+            document.getElementById('uploadSketchBtn').addEventListener('click', () => document.getElementById('sketchUpload').click());
+            document.getElementById('sketchUpload').addEventListener('change', (e) => {
+                if(e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        sketchData = ev.target.result;
+                        renderSketch();
+                        saveToLocalStorage();
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+            document.getElementById('quickNotes').addEventListener('input', () => saveToLocalStorage());
+            // Exportación Multi-IA (agregar botones flotantes o en el panel? Lo añadimos en la barra superior)
+            const exportBar = document.createElement('div');
+            exportBar.className = 'flex gap-2 ml-4';
+            exportBar.innerHTML = `
+                <span class="text-xs text-gray-300 self-center">Exportar a:</span>
+                <button data-ai="ChatGPT" class="export-ai bg-green-700/70 px-2 py-1 rounded text-xs">ChatGPT</button>
+                <button data-ai="Claude" class="export-ai bg-orange-700/70 px-2 py-1 rounded text-xs">Claude</button>
+                <button data-ai="Gemini" class="export-ai bg-blue-700/70 px-2 py-1 rounded text-xs">Gemini</button>
+                <button data-ai="Cursor" class="export-ai bg-gray-700/70 px-2 py-1 rounded text-xs">Cursor</button>
+                <button data-ai="Devin" class="export-ai bg-indigo-700/70 px-2 py-1 rounded text-xs">Devin</button>
+                <button data-ai="Kimi" class="export-ai bg-red-700/70 px-2 py-1 rounded text-xs">Kimi</button>
+            `;
+            document.querySelector('.flex.gap-2.flex-wrap').appendChild(exportBar);
+            document.querySelectorAll('.export-ai').forEach(btn => {
+                btn.addEventListener('click', () => exportToAI(btn.dataset.ai));
+            });
+        }
+
         loadFromLocalStorage();
-        // Ajustar tamaño del canvas al redimensionar ventana
-        window.addEventListener('resize', () => renderElements());
+        initUI();
+        setTool('select');
+        canvas.renderAll();
     </script>
 </body>
 </html>
