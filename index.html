@@ -1,619 +1,1133 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>VPO Studio Final - Visual Prompt Orchestrator</title>
-    <!-- Tailwind CSS + FontAwesome + Fabric.js -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-    <style>
-        body {
-            overflow: hidden;
-            height: 100vh;
-            margin: 0;
-        }
-        #canvas-container {
-            background: #1e1e2f;
-            background-image: 
-                linear-gradient(to right, #2d2d44 1px, transparent 1px),
-                linear-gradient(to bottom, #2d2d44 1px, transparent 1px);
-            background-size: 25px 25px;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
-        }
-        .tool-btn.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-        .property-panel input, .property-panel textarea {
-            background: #2d2d44;
-            border: 1px solid #4b4b6e;
-            color: white;
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 12px;
-            width: 100%;
-        }
-        .library-item {
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 6px;
-            cursor: pointer;
-            transition: 0.1s;
-        }
-        .library-item:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        .timeline-item {
-            border-left: 2px solid #3b82f6;
-            padding-left: 8px;
-            margin-bottom: 8px;
-            font-size: 11px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Envía Links - Atención Ciudadana</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #eef2f7; color: #1a202c; line-height: 1.6; min-height: 100vh;
+  }
+  /* LOGIN */
+  .login-container {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: linear-gradient(135deg, #611232 0%, #3d0b1f 100%);
+  }
+  .login-box {
+    background: white; padding: 2.5rem; border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 400px;
+  }
+  .login-box h1 { color: #611232; font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center; }
+  .login-box .sub { text-align: center; color: #718096; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .login-box label { display: block; margin-top: 1rem; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.9rem; }
+  .login-box input {
+    width: 100%; padding: 0.7rem; border: 1px solid #cbd5e0;
+    border-radius: 6px; font-size: 1rem; font-family: inherit;
+  }
+  .login-box input:focus { outline: none; border-color: #611232; box-shadow: 0 0 0 3px rgba(97,18,50,0.15); }
+  .login-box button {
+    width: 100%; margin-top: 1.5rem; padding: 0.8rem; background: #611232;
+    color: white; border: none; border-radius: 6px; font-size: 1rem;
+    font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .login-box button:hover { background: #4a0d26; }
+  .login-error { color: #e53e3e; font-size: 0.85rem; margin-top: 0.75rem; text-align: center; }
+  .login-hint { margin-top: 1.5rem; padding: 0.75rem; background: #f7fafc; border-radius: 6px; font-size: 0.8rem; color: #4a5568; }
+  .login-hint strong { color: #611232; }
+
+  /* APP */
+  .app { display: none; }
+  .app.activo { display: block; }
+  header.topbar {
+    background: #611232; color: white; padding: 1rem 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 0.75rem;
+  }
+  header.topbar h1 { font-size: 1.2rem; }
+  header.topbar .user-info { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
+  header.topbar .user-info .rol {
+    background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem;
+    border-radius: 20px; font-size: 0.75rem; text-transform: uppercase;
+  }
+  header.topbar button.logout {
+    background: rgba(255,255,255,0.15); color: white; border: none;
+    padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-size: 0.85rem;
+  }
+  header.topbar button.logout:hover { background: rgba(255,255,255,0.3); }
+
+  nav.tabs {
+    background: white; padding: 0 1.5rem; display: flex; gap: 0.25rem;
+    border-bottom: 1px solid #e2e8f0; overflow-x: auto;
+  }
+  nav.tabs button {
+    background: none; border: none; padding: 0.9rem 1.2rem;
+    font-size: 0.9rem; font-weight: 500; color: #4a5568;
+    cursor: pointer; border-bottom: 3px solid transparent;
+    font-family: inherit; white-space: nowrap;
+  }
+  nav.tabs button.activo { color: #611232; border-bottom-color: #611232; }
+  nav.tabs button:hover { color: #611232; }
+
+  main.content { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
+  .panel { display: none; }
+  .panel.activo { display: block; }
+
+  .tarjeta {
+    background: white; padding: 1.5rem; border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 1.25rem;
+  }
+  .tarjeta h2 { color: #611232; font-size: 1.15rem; margin-bottom: 1rem; }
+  .tarjeta h3 { color: #2d3748; font-size: 1rem; margin: 1rem 0 0.5rem; }
+
+  label { display: block; margin-top: 0.9rem; margin-bottom: 0.35rem; font-weight: 500; font-size: 0.88rem; color: #2d3748; }
+  input[type="text"], input[type="email"], input[type="password"], select, textarea {
+    width: 100%; padding: 0.65rem; border: 1px solid #cbd5e0;
+    border-radius: 6px; font-size: 0.95rem; font-family: inherit; background: white;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: #611232; box-shadow: 0 0 0 3px rgba(97,18,50,0.12);
+  }
+
+  button.btn {
+    margin-top: 1rem; padding: 0.7rem 1.4rem; background: #611232;
+    color: white; border: none; border-radius: 6px; font-size: 0.95rem;
+    font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  button.btn:hover { background: #4a0d26; }
+  button.btn.secundario { background: #4a5568; }
+  button.btn.secundario:hover { background: #2d3748; }
+  button.btn.exito { background: #38a169; }
+  button.btn.exito:hover { background: #2f855a; }
+  button.btn.peligro { background: #e53e3e; }
+  button.btn.peligro:hover { background: #c53030; }
+  button.btn.chico { padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-top: 0; }
+
+  fieldset { border: 1px solid #cbd5e0; border-radius: 6px; padding: 0.75rem; margin-top: 1rem; }
+  legend { padding: 0 0.5rem; font-weight: 500; font-size: 0.88rem; color: #2d3748; }
+  fieldset label { display: inline-flex; align-items: center; gap: 0.4rem; margin-right: 1.5rem; margin-top: 0.5rem; font-weight: normal; }
+
+  .alerta { padding: 1rem; border-radius: 6px; margin-top: 1rem; font-size: 0.9rem; }
+  .alerta.exito { background: #f0fff4; border-left: 4px solid #38a169; }
+  .alerta.info { background: #ebf8ff; border-left: 4px solid #3182ce; }
+  .alerta.advertencia { background: #fffaf0; border-left: 4px solid #dd6b20; }
+  .alerta.peligro { background: #fff5f5; border-left: 4px solid #e53e3e; }
+
+  /* Alerta grande de aprobación */
+  .alerta-aprobacion {
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border: 3px solid #e53e3e; border-radius: 10px; padding: 1.5rem;
+    margin-bottom: 1.25rem; animation: pulso 2s infinite;
+  }
+  @keyframes pulso {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(229,62,62,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(229,62,62,0); }
+  }
+  .alerta-aprobacion h3 { color: #c53030; font-size: 1.2rem; margin-bottom: 0.75rem; }
+  .alerta-aprobacion .detalle { font-size: 0.9rem; color: #742a2a; margin-bottom: 0.4rem; }
+  .alerta-aprobacion .url-box {
+    background: white; padding: 0.6rem; border-radius: 6px;
+    font-family: monospace; font-size: 0.85rem; word-break: break-all;
+    margin: 0.75rem 0; border: 1px solid #fc8181;
+  }
+  .alerta-aprobacion .acciones { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  /* Catálogo */
+  .catalogo-item {
+    border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;
+    margin-bottom: 0.75rem; background: white;
+  }
+  .catalogo-item.seleccionado { border-color: #611232; background: #fff5f8; }
+  .catalogo-item .titulo { font-weight: 600; color: #2d3748; margin-bottom: 0.25rem; }
+  .catalogo-item .desc { font-size: 0.85rem; color: #718096; margin-bottom: 0.5rem; }
+  .catalogo-item .links-preview { font-size: 0.8rem; color: #4a5568; }
+  .catalogo-item .links-preview span { display: block; margin-top: 0.2rem; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    header.topbar { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* Historial */
+  .item-historial {
+    padding: 0.9rem; border-bottom: 1px solid #e2e8f0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 1rem; flex-wrap: wrap;
+  }
+  .item-historial:last-child { border-bottom: none; }
+  .item-historial .info { flex: 1; min-width: 250px; }
+  .item-historial .info strong { color: #2d3748; }
+  .item-historial .meta { font-size: 0.8rem; color: #718096; margin-top: 0.3rem; }
+  .badge {
+    display: inline-block; padding: 0.15rem 0.55rem; border-radius: 12px;
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  }
+  .badge.whatsapp { background: #d1fae5; color: #065f46; }
+  .badge.correo { background: #dbeafe; color: #1e40af; }
+  .badge.catalogo { background: #e9d8fd; color: #553c9a; }
+  .badge.externo { background: #fed7d7; color: #822727; }
+  .badge.pendiente { background: #fefcbf; color: #744210; }
+  .badge.aprobada { background: #c6f6d5; color: #22543d; }
+  .badge.rechazada { background: #fed7d7; color: #822727; }
+
+  /* Métricas */
+  .metricas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+  .metrica {
+    background: linear-gradient(135deg, #611232 0%, #8b1a4a 100%);
+    color: white; padding: 1rem; border-radius: 8px; text-align: center;
+  }
+  .metrica .numero { font-size: 1.8rem; font-weight: 700; }
+  .metrica .etiqueta { font-size: 0.8rem; opacity: 0.9; margin-top: 0.25rem; }
+
+  .vacio { text-align: center; color: #a0aec0; padding: 2rem; font-size: 0.9rem; }
+  .oculto { display: none !important; }
+  .fila { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .nota { font-size: 0.82rem; color: #718096; margin-top: 0.4rem; }
+  .acciones-item { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem;
+  }
+  .modal .contenido {
+    background: white; padding: 1.5rem; border-radius: 10px;
+    max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { color: #611232; margin-bottom: 1rem; }
+</style>
 </head>
-<body class="bg-gray-900 text-white">
+<body>
 
-    <!-- Barra superior -->
-    <div class="bg-black/50 backdrop-blur-md border-b border-white/10 px-4 py-2 flex flex-wrap items-center justify-between gap-2 z-10">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-cubes text-2xl text-blue-400"></i>
-            <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">VPO Studio Final</h1>
-            <span class="text-xs bg-white/10 px-2 py-1 rounded-full">Dibuja, Guarda, Orquesta</span>
-        </div>
-        <div class="flex gap-2 flex-wrap">
-            <button id="clearCanvasBtn" class="bg-red-600/70 hover:bg-red-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-trash-alt"></i> Limpiar</button>
-            <button id="undoBtn" class="bg-gray-600/70 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-undo"></i> Deshacer</button>
-            <button id="redoBtn" class="bg-gray-600/70 hover:bg-gray-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-redo"></i> Rehacer</button>
-            <button id="generatePromptBtn" class="bg-green-600/70 hover:bg-green-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-code"></i> Generar Prompt Visual</button>
-            <button id="copyPromptBtn" class="bg-blue-600/70 hover:bg-blue-600 px-3 py-1 rounded-lg text-sm"><i class="fas fa-copy"></i> Copiar Prompt</button>
-        </div>
+<!-- LOGIN -->
+<div class="login-container" id="vista-login">
+  <div class="login-box">
+    <h1>📤 Envía Links</h1>
+    <p class="sub">Atención Ciudadana · Gobierno de México</p>
+    <label for="usuario">Usuario</label>
+    <input type="text" id="usuario" placeholder="Tu usuario" autocomplete="off">
+    <label for="password">Contraseña</label>
+    <input type="password" id="password" placeholder="Tu contraseña" autocomplete="off">
+    <button onclick="iniciarSesion()">Iniciar sesión</button>
+    <div id="login-error" class="login-error oculto"></div>
+    <div class="login-hint">
+      <strong>Demo:</strong><br>
+      Principal: <code>principal / admin123</code><br>
+      Supervisor: <code>super1 / super123</code><br>
+      Agente: <code>agente1 / agente123</code>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="vista-app">
+  <header class="topbar">
+    <h1>📤 Envía Links</h1>
+    <div class="user-info">
+      <span id="user-nombre"></span>
+      <span class="rol" id="user-rol"></span>
+      <button class="logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main class="content">
+    <div id="paneles"></div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   DATOS INICIALES (simulan la base de datos)
+   ============================================================ */
+const DB_KEY = 'envia_links_db_v2';
+
+function datosIniciales() {
+  return {
+    usuarios: [
+      { id: 'u1', nombre: 'Director General', usuario: 'principal', password: 'admin123', rol: 'principal' },
+      { id: 'u2', nombre: 'Laura Méndez (Turno 1)', usuario: 'super1', password: 'super123', rol: 'supervisor', turno: 'Turno 1', seguimientoId: 'u3' },
+      { id: 'u3', nombre: 'Pedro Ruiz (Turno 1 - Seguimiento)', usuario: 'super3', password: 'super123', rol: 'supervisor', turno: 'Turno 1', seguimientoId: 'u2' },
+      { id: 'u4', nombre: 'Ana García (Turno 2)', usuario: 'super2', password: 'super123', rol: 'supervisor', turno: 'Turno 2', seguimientoId: null },
+      { id: 'u5', nombre: 'Carlos López', usuario: 'agente1', password: 'agente123', rol: 'agente', supervisorId: 'u2' },
+      { id: 'u6', nombre: 'María Torres', usuario: 'agente2', password: 'agente123', rol: 'agente', supervisorId: 'u2' },
+      { id: 'u7', nombre: 'José Ramírez', usuario: 'agente3', password: 'agente123', rol: 'agente', supervisorId: 'u4' }
+    ],
+    catalogo: [
+      {
+        id: 't1', nombre: 'Consulta de CURP', descripcion: 'Consulta e imprime tu CURP en línea',
+        urlPagina: 'https://www.gob.mx/curp/',
+        infografias: [{ nombre: 'Guía paso a paso CURP', url: 'https://drive.google.com/guia-curp' }],
+        videoTutorial: { nombre: 'Video: Cómo consultar tu CURP', url: 'https://youtube.com/curp-tutorial' }
+      },
+      {
+        id: 't2', nombre: 'Trámites del SAT', descripcion: 'Portal principal del SAT',
+        urlPagina: 'https://www.sat.gob.mx/',
+        infografias: [{ nombre: 'Infografía SAT', url: 'https://drive.google.com/info-sat' }],
+        videoTutorial: { nombre: 'Video: Acceso al SAT', url: 'https://youtube.com/sat-tutorial' }
+      },
+      {
+        id: 't3', nombre: 'IMSS - Servicios digitales', descripcion: 'Trámites y servicios del IMSS',
+        urlPagina: 'https://www.imss.gob.mx/',
+        infografias: [{ nombre: 'Guía IMSS', url: 'https://drive.google.com/guia-imss' }],
+        videoTutorial: { nombre: 'Video: Servicios IMSS', url: 'https://youtube.com/imss-tutorial' }
+      },
+      {
+        id: 't4', nombre: 'Acta de nacimiento', descripcion: 'Solicita tu acta de nacimiento',
+        urlPagina: 'https://www.gob.mx/actas',
+        infografias: [],
+        videoTutorial: null
+      }
+    ],
+    envios: [],
+    solicitudes: [],
+    cambiosTemporales: []
+  };
+}
+
+let DB = cargarDB();
+
+function cargarDB() {
+  const datos = localStorage.getItem(DB_KEY);
+  if (!datos) {
+    const inicial = datosIniciales();
+    localStorage.setItem(DB_KEY, JSON.stringify(inicial));
+    return inicial;
+  }
+  return JSON.parse(datos);
+}
+
+function guardarDB() {
+  localStorage.setItem(DB_KEY, JSON.stringify(DB));
+}
+
+/* ============================================================
+   SESIÓN
+   ============================================================ */
+let sesion = null;
+
+function iniciarSesion() {
+  const usuario = document.getElementById('usuario').value.trim();
+  const password = document.getElementById('password').value;
+  const errorDiv = document.getElementById('login-error');
+
+  const user = DB.usuarios.find(u => u.usuario === usuario && u.password === password);
+  if (!user) {
+    errorDiv.textContent = 'Usuario o contraseña incorrectos.';
+    errorDiv.classList.remove('oculto');
+    return;
+  }
+  errorDiv.classList.add('oculto');
+  sesion = user;
+  localStorage.setItem('envia_links_sesion', user.id);
+  mostrarApp();
+}
+
+function cerrarSesion() {
+  sesion = null;
+  localStorage.removeItem('envia_links_sesion');
+  document.getElementById('vista-app').classList.remove('activo');
+  document.getElementById('vista-login').style.display = 'flex';
+  document.getElementById('usuario').value = '';
+  document.getElementById('password').value = '';
+}
+
+function restaurarSesion() {
+  const id = localStorage.getItem('envia_links_sesion');
+  if (!id) return false;
+  const user = DB.usuarios.find(u => u.id === id);
+  if (!user) return false;
+  sesion = user;
+  mostrarApp();
+  return true;
+}
+
+/* ============================================================
+   RENDERIZADO DE LA APP SEGÚN ROL
+   ============================================================ */
+function mostrarApp() {
+  document.getElementById('vista-login').style.display = 'none';
+  document.getElementById('vista-app').classList.add('activo');
+
+  document.getElementById('user-nombre').textContent = sesion.nombre;
+  document.getElementById('user-rol').textContent = sesion.rol;
+
+  // Reset diario de cambios temporales
+  resetCambiosDiarios();
+
+  // Definir tabs según rol
+  const tabs = [];
+  if (sesion.rol === 'agente') {
+    tabs.push({ id: 'enviar', label: '📨 Enviar' });
+    tabs.push({ id: 'externo', label: '🔗 Liga externa' });
+    tabs.push({ id: 'cambio', label: '🔄 Cambio de supervisor' });
+  } else if (sesion.rol === 'supervisor') {
+    tabs.push({ id: 'aprobaciones', label: '⚠️ Aprobaciones' });
+    tabs.push({ id: 'enviar', label: '📨 Enviar' });
+    tabs.push({ id: 'historial', label: '📋 Historial' });
+    tabs.push({ id: 'metricas', label: '📊 Métricas' });
+  } else if (sesion.rol === 'principal') {
+    tabs.push({ id: 'catalogo', label: '📚 Catálogo' });
+    tabs.push({ id: 'supervisores', label: '👥 Supervisores' });
+    tabs.push({ id: 'historial', label: '📋 Historial global' });
+    tabs.push({ id: 'metricas', label: '📊 Métricas' });
+    tabs.push({ id: 'enviar', label: '📨 Enviar' });
+  }
+
+  const tabsDiv = document.getElementById('tabs');
+  tabsDiv.innerHTML = tabs.map((t, i) =>
+    `<button onclick="cambiarTab('${t.id}')" id="tab-${t.id}" class="${i === 0 ? 'activo' : ''}">${t.label}</button>`
+  ).join('');
+
+  // Renderizar el primer panel
+  if (tabs.length > 0) cambiarTab(tabs[0].id);
+}
+
+function cambiarTab(tabId) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('activo'));
+  const tabBtn = document.getElementById('tab-' + tabId);
+  if (tabBtn) tabBtn.classList.add('activo');
+
+  const paneles = document.getElementById('paneles');
+  paneles.innerHTML = '';
+
+  if (tabId === 'enviar') paneles.innerHTML = renderEnviar();
+  else if (tabId === 'externo') paneles.innerHTML = renderExterno();
+  else if (tabId === 'cambio') paneles.innerHTML = renderCambioSupervisor();
+  else if (tabId === 'aprobaciones') paneles.innerHTML = renderAprobaciones();
+  else if (tabId === 'historial') paneles.innerHTML = renderHistorial();
+  else if (tabId === 'metricas') paneles.innerHTML = renderMetricas();
+  else if (tabId === 'catalogo') paneles.innerHTML = renderCatalogoAdmin();
+  else if (tabId === 'supervisores') paneles.innerHTML = renderSupervisores();
+
+  // Re-inicializar lógica específica de cada panel
+  if (tabId === 'enviar') inicializarEnviar();
+}
+
+/* ============================================================
+   RESET DIARIO DE CAMBIOS TEMPORALES
+   ============================================================ */
+function resetCambiosDiarios() {
+  const hoy = new Date().toDateString();
+  DB.cambiosTemporales = DB.cambiosTemporales.filter(c => {
+    if (c.fecha !== hoy) {
+      // Regresar al supervisor original
+      const agente = DB.usuarios.find(u => u.id === c.agenteId);
+      if (agente) agente.supervisorId = c.supervisorOriginalId;
+      return false;
+    }
+    return true;
+  });
+  guardarDB();
+}
+
+/* ============================================================
+   VISTA: ENVIAR (agente, supervisor, principal)
+   ============================================================ */
+function renderEnviar() {
+  return `
+    <div class="tarjeta">
+      <h2>📨 Enviar link de trámite</h2>
+      <label for="buscar-tramite">Buscar trámite</label>
+      <input type="text" id="buscar-tramite" placeholder="Escribe para filtrar..." oninput="filtrarCatalogo()">
+      <div id="lista-catalogo" style="margin-top: 1rem; max-height: 400px; overflow-y: auto;"></div>
+
+      <div id="form-envio-tramite" class="oculto" style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+        <h3 id="titulo-tramite-seleccionado"></h3>
+        <div id="preview-links" style="background: #f7fafc; padding: 1rem; border-radius: 6px; margin-top: 0.75rem; font-size: 0.88rem;"></div>
+
+        <fieldset>
+          <legend>Canal de envío</legend>
+          <label><input type="radio" name="canal" value="whatsapp" checked> WhatsApp</label>
+          <label><input type="radio" name="canal" value="correo"> Correo</label>
+        </fieldset>
+
+        <label for="destino">Correo o teléfono del ciudadano</label>
+        <input type="text" id="destino" placeholder="Ej: 5512345678 o ciudadano@correo.com">
+
+        <button class="btn" onclick="enviarTramite()">🚀 Preparar envío</button>
+        <button class="btn secundario" onclick="cancelarEnvio()">Cancelar</button>
+      </div>
+
+      <div id="confirmacion-envio" class="oculto"></div>
+    </div>
+  `;
+}
+
+let tramiteSeleccionado = null;
+
+function inicializarEnviar() {
+  tramiteSeleccionado = null;
+  filtrarCatalogo();
+}
+
+function filtrarCatalogo() {
+  const busqueda = (document.getElementById('buscar-tramite')?.value || '').toLowerCase();
+  const lista = document.getElementById('lista-catalogo');
+  if (!lista) return;
+
+  const filtrados = DB.catalogo.filter(t =>
+    t.nombre.toLowerCase().includes(busqueda) ||
+    t.descripcion.toLowerCase().includes(busqueda)
+  );
+
+  if (filtrados.length === 0) {
+    lista.innerHTML = '<p class="vacio">No se encontraron trámites.</p>';
+    return;
+  }
+
+  lista.innerHTML = filtrados.map(t => `
+    <div class="catalogo-item ${tramiteSeleccionado === t.id ? 'seleccionado' : ''}" onclick="seleccionarTramite('${t.id}')">
+      <div class="titulo">${t.nombre}</div>
+      <div class="desc">${t.descripcion}</div>
+      <div class="links-preview">
+        <span>🔗 Página: ${t.urlPagina}</span>
+        ${t.infografias.length > 0 ? `<span>📄 Infografías: ${t.infografias.length}</span>` : ''}
+        ${t.videoTutorial ? `<span>🎥 Video: ${t.videoTutorial.nombre}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function seleccionarTramite(id) {
+  tramiteSeleccionado = id;
+  const t = DB.catalogo.find(x => x.id === id);
+  if (!t) return;
+
+  document.getElementById('titulo-tramite-seleccionado').textContent = '📌 ' + t.nombre;
+
+  let preview = `<strong>Se enviará en este orden:</strong><br><br>`;
+  preview += `<strong>1. Página oficial:</strong><br>${t.urlPagina}<br><br>`;
+  t.infografias.forEach((info, i) => {
+    preview += `<strong>${i + 2}. Infografía:</strong> ${info.nombre}<br>${info.url}<br><br>`;
+  });
+  if (t.videoTutorial) {
+    preview += `<strong>${t.infografias.length + 2}. Video tutorial:</strong> ${t.videoTutorial.nombre}<br>${t.videoTutorial.url}`;
+  }
+  document.getElementById('preview-links').innerHTML = preview;
+
+  document.getElementById('form-envio-tramite').classList.remove('oculto');
+  document.getElementById('confirmacion-envio').classList.add('oculto');
+  filtrarCatalogo();
+}
+
+function cancelarEnvio() {
+  tramiteSeleccionado = null;
+  document.getElementById('form-envio-tramite').classList.add('oculto');
+  document.getElementById('confirmacion-envio').classList.add('oculto');
+  filtrarCatalogo();
+}
+
+function enviarTramite() {
+  const t = DB.catalogo.find(x => x.id === tramiteSeleccionado);
+  if (!t) return;
+
+  const destino = document.getElementById('destino').value.trim();
+  const canal = document.querySelector('input[name="canal"]:checked').value;
+
+  if (!destino) {
+    alert('Ingresa el correo o teléfono del ciudadano.');
+    return;
+  }
+
+  // Construir mensaje
+  let mensaje = `Gobierno de México\n\nTrámite: ${t.nombre}\n\n`;
+  mensaje += `1. Página oficial:\n${t.urlPagina}\n\n`;
+  t.infografias.forEach((info, i) => {
+    mensaje += `${i + 2}. Infografía (${info.nombre}):\n${info.url}\n\n`;
+  });
+  if (t.videoTutorial) {
+    mensaje += `${t.infografias.length + 2}. Video tutorial (${t.videoTutorial.nombre}):\n${t.videoTutorial.url}\n\n`;
+  }
+  mensaje += `No comparta este enlace.`;
+
+  const enlace = canal === 'whatsapp'
+    ? generarLinkWhatsApp(destino, mensaje)
+    : generarLinkCorreo(destino, `Trámite: ${t.nombre}`, mensaje);
+
+  // Registrar en historial
+  DB.envios.unshift({
+    id: 'e' + Date.now(),
+    fecha: new Date().toISOString(),
+    agenteId: sesion.id,
+    agenteNombre: sesion.nombre,
+    tramiteId: t.id,
+    tramiteNombre: t.nombre,
+    tipo: 'catalogo',
+    destino, canal, enlace
+  });
+  guardarDB();
+
+  // Abrir enlace
+  if (canal === 'whatsapp') window.open(enlace, '_blank');
+  else window.location.href = enlace;
+
+  // Confirmación
+  const conf = document.getElementById('confirmacion-envio');
+  conf.innerHTML = `
+    <div class="alerta exito">
+      <strong>✅ Envío preparado</strong>
+      <p>Se abrió ${canal === 'whatsapp' ? 'WhatsApp' : 'tu cliente de correo'} con el mensaje listo.</p>
+      <p style="margin-top:0.5rem"><strong>Enlace generado:</strong></p>
+      <textarea readonly rows="3" style="width:100%;font-size:0.8rem;margin-top:0.4rem">${enlace}</textarea>
+      <button class="btn chico exito" onclick="navigator.clipboard.writeText(\`${enlace}\`)">📋 Copiar</button>
+    </div>
+  `;
+  conf.classList.remove('oculto');
+}
+
+/* ============================================================
+   VISTA: LIGA EXTERNA (agente)
+   ============================================================ */
+function renderExterno() {
+  return `
+    <div class="tarjeta">
+      <h2>🔗 Solicitar envío de liga externa</h2>
+      <div class="alerta advertencia">
+        Esta liga no pertenece al catálogo oficial. Requiere aprobación de tu supervisor.
+      </div>
+      <label for="url-externa">URL de la liga</label>
+      <input type="text" id="url-externa" placeholder="https://..." maxlength="200" value="https://">
+      <p class="nota">Máximo 200 caracteres. Debe iniciar con https://</p>
+
+      <fieldset>
+        <legend>Canal de envío</legend>
+        <label><input type="radio" name="canal-ext" value="whatsapp" checked> WhatsApp</label>
+        <label><input type="radio" name="canal-ext" value="correo"> Correo</label>
+      </fieldset>
+
+      <label for="destino-ext">Correo o teléfono del ciudadano</label>
+      <input type="text" id="destino-ext" placeholder="Destino">
+
+      <label for="motivo-ext">Motivo (opcional, para el supervisor)</label>
+      <textarea id="motivo-ext" rows="2" placeholder="Ej: El ciudadano pidió información de un trámite relacionado"></textarea>
+
+      <button class="btn" onclick="solicitarExterna()">📤 Enviar a aprobación</button>
+
+      <div id="resultado-externa" class="oculto"></div>
     </div>
 
-    <div class="flex h-full">
-        <!-- Barra lateral izquierda (herramientas) -->
-        <div class="w-20 bg-black/40 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-4 gap-3 overflow-y-auto">
-            <button id="tool-select" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="select"><i class="fas fa-mouse-pointer text-xl"></i></button>
-            <button id="tool-rect" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="rect"><i class="fas fa-square text-xl"></i></button>
-            <button id="tool-circle" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="circle"><i class="fas fa-circle text-xl"></i></button>
-            <button id="tool-triangle" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="triangle"><i class="fas fa-play rotate-90 text-xl"></i></button>
-            <button id="tool-line" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="line"><i class="fas fa-minus text-xl"></i></button>
-            <button id="tool-arrow" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="arrow"><i class="fas fa-long-arrow-alt-right text-xl"></i></button>
-            <button id="tool-star" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="star"><i class="fas fa-star text-xl"></i></button>
-            <button id="tool-heart" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="heart"><i class="fas fa-heart text-xl"></i></button>
-            <button id="tool-cloud" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="cloud"><i class="fas fa-cloud text-xl"></i></button>
-            <button id="tool-text" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="text"><i class="fas fa-font text-xl"></i></button>
-            <button id="tool-pencil" class="tool-btn w-12 h-12 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center" data-tool="pencil"><i class="fas fa-pencil-alt text-xl"></i></button>
-            <div class="h-px w-8 bg-white/20 my-1"></div>
-            <button id="deleteSelectedBtn" class="w-12 h-12 rounded-xl bg-red-600/40 hover:bg-red-600 flex items-center justify-center"><i class="fas fa-trash-alt"></i></button>
-            <button id="saveToLibraryBtn" class="w-12 h-12 rounded-xl bg-amber-600/40 hover:bg-amber-600 flex items-center justify-center"><i class="fas fa-bookmark"></i></button>
+    <div class="tarjeta">
+      <h2>📋 Mis solicitudes</h2>
+      <div id="mis-solicitudes"></div>
+    </div>
+  ` + renderMisSolicitudes();
+}
+
+function renderMisSolicitudes() {
+  setTimeout(() => {
+    const cont = document.getElementById('mis-solicitudes');
+    if (!cont) return;
+    const mias = DB.solicitudes.filter(s => s.agenteId === sesion.id);
+    if (mias.length === 0) {
+      cont.innerHTML = '<p class="vacio">Aún no has solicitado ligas externas.</p>';
+      return;
+    }
+    cont.innerHTML = mias.map(s => `
+      <div class="item-historial">
+        <div class="info">
+          <strong>${s.url}</strong>
+          <div class="meta">📅 ${new Date(s.fecha).toLocaleString('es-MX')} · ${s.destino} · ${s.canal}</div>
         </div>
+        <span class="badge ${s.estado}">${s.estado}</span>
+      </div>
+    `).join('');
+  }, 50);
+  return '';
+}
 
-        <!-- Canvas central -->
-        <div class="flex-1 p-3">
-            <div id="canvas-container" class="w-full h-full rounded-xl border border-white/10"></div>
+function solicitarExterna() {
+  const url = document.getElementById('url-externa').value.trim();
+  const destino = document.getElementById('destino-ext').value.trim();
+  const canal = document.querySelector('input[name="canal-ext"]:checked').value;
+  const motivo = document.getElementById('motivo-ext').value.trim();
+
+  if (!url.startsWith('https://') || url.length < 12) {
+    alert('La URL debe iniciar con https:// y ser válida.');
+    return;
+  }
+  if (url.length > 200) {
+    alert('La URL excede 200 caracteres.');
+    return;
+  }
+  if (!destino) {
+    alert('Ingresa el destino.');
+    return;
+  }
+
+  const supervisorId = sesion.supervisorId || DB.usuarios.find(u => u.rol === 'supervisor')?.id;
+
+  DB.solicitudes.unshift({
+    id: 's' + Date.now(),
+    fecha: new Date().toISOString(),
+    agenteId: sesion.id,
+    agenteNombre: sesion.nombre,
+    supervisorId,
+    url, destino, canal, motivo,
+    estado: 'pendiente'
+  });
+  guardarDB();
+
+  const res = document.getElementById('resultado-externa');
+  res.innerHTML = `<div class="alerta exito"><strong>✅ Solicitud enviada</strong><p>Tu supervisor la revisará y, al aprobarla, se enviará automáticamente.</p></div>`;
+  res.classList.remove('oculto');
+
+  document.getElementById('url-externa').value = 'https://';
+  document.getElementById('destino-ext').value = '';
+  document.getElementById('motivo-ext').value = '';
+  renderMisSolicitudes();
+}
+
+/* ============================================================
+   VISTA: CAMBIO DE SUPERVISOR (agente)
+   ============================================================ */
+function renderCambioSupervisor() {
+  const supervisorActual = DB.usuarios.find(u => u.id === sesion.supervisorId);
+  const supervisores = DB.usuarios.filter(u => u.rol === 'supervisor');
+
+  const cambioHoy = DB.cambiosTemporales.find(c => c.agenteId === sesion.id);
+
+  return `
+    <div class="tarjeta">
+      <h2>🔄 Cambio temporal de supervisor</h2>
+      <div class="alerta info">
+        <strong>Supervisor actual:</strong> ${supervisorActual ? supervisorActual.nombre : 'Sin asignar'}
+      </div>
+      <p class="nota">El cambio aplica solo por el día de hoy. Mañana regresarás automáticamente a tu supervisor original.</p>
+
+      ${cambioHoy ? `
+        <div class="alerta advertencia">
+          Ya tienes un cambio activo para hoy. Supervisor temporal: 
+          <strong>${DB.usuarios.find(u => u.id === cambioHoy.supervisorTemporalId)?.nombre || '—'}</strong>
         </div>
+      ` : `
+        <label for="nuevo-supervisor">Selecciona el supervisor temporal</label>
+        <select id="nuevo-supervisor">
+          <option value="">— Selecciona —</option>
+          ${supervisores.filter(s => s.id !== sesion.supervisorId).map(s =>
+            `<option value="${s.id}">${s.nombre}</option>`
+          ).join('')}
+        </select>
+        <button class="btn" onclick="cambiarSupervisor()">🔄 Aplicar cambio por hoy</button>
+      `}
+    </div>
+  `;
+}
 
-        <!-- Panel derecho (Propiedades, Biblioteca, IA, Referencias, Notas, Timeline) -->
-        <div class="w-80 bg-black/40 backdrop-blur-md border-l border-white/10 p-3 flex flex-col gap-3 overflow-y-auto">
-            <!-- Propiedades del objeto seleccionado -->
-            <div class="bg-white/5 rounded-xl p-3">
-                <h3 class="text-sm font-semibold flex items-center gap-1"><i class="fas fa-sliders-h"></i> Propiedades</h3>
-                <div id="propertyPanel" class="text-xs space-y-2 mt-2">
-                    <p class="text-gray-400 italic">Selecciona un objeto</p>
-                </div>
-            </div>
+function cambiarSupervisor() {
+  const nuevoId = document.getElementById('nuevo-supervisor').value;
+  if (!nuevoId) { alert('Selecciona un supervisor.'); return; }
 
-            <!-- Biblioteca de diseños guardados -->
-            <div class="bg-white/5 rounded-xl p-3">
-                <h3 class="text-sm font-semibold flex items-center gap-1"><i class="fas fa-archive"></i> Mis diseños</h3>
-                <div id="libraryList" class="max-h-32 overflow-y-auto flex flex-wrap gap-2 mt-2 text-xs">
-                    <span class="text-gray-500">Guarda objetos que te gusten</span>
-                </div>
-            </div>
+  const originalId = sesion.supervisorId;
+  DB.cambiosTemporales.push({
+    agenteId: sesion.id,
+    supervisorOriginalId: originalId,
+    supervisorTemporalId: nuevoId,
+    fecha: new Date().toDateString()
+  });
 
-            <!-- Referencias visuales -->
-            <div class="bg-white/5 rounded-xl p-3">
-                <h3 class="text-sm font-semibold"><i class="fas fa-images text-green-400"></i> Referencias / Bocetos</h3>
-                <input type="file" id="refUpload" accept="image/*" class="hidden" multiple>
-                <button id="uploadRefBtn" class="bg-white/10 w-full py-1 rounded text-xs mt-1"><i class="fas fa-upload"></i> Subir imagen(es)</button>
-                <div id="refThumbs" class="flex flex-wrap gap-1 mt-2 max-h-20 overflow-auto"></div>
-                <input type="file" id="sketchUpload" accept="image/*" class="hidden">
-                <button id="uploadSketchBtn" class="bg-white/10 w-full py-1 rounded text-xs mt-2"><i class="fas fa-draw-polygon"></i> Subir boceto</button>
-                <div id="sketchPreview" class="mt-1 text-center text-[10px] text-gray-400"></div>
-            </div>
+  // Actualizar en la DB
+  const agente = DB.usuarios.find(u => u.id === sesion.id);
+  agente.supervisorId = nuevoId;
+  sesion.supervisorId = nuevoId;
+  guardarDB();
 
-            <!-- Asistente IA -->
-            <div class="bg-white/5 rounded-xl p-3">
-                <h3 class="text-sm font-semibold"><i class="fas fa-robot text-purple-400"></i> Asistente IA</h3>
-                <div id="aiMessages" class="h-28 overflow-y-auto text-xs space-y-1 bg-black/30 rounded p-1 mt-1"></div>
-                <button id="askAiBtn" class="bg-purple-600/70 hover:bg-purple-600 w-full mt-1 py-1 rounded text-xs"><i class="fas fa-magic"></i> Sugerir mejoras</button>
-            </div>
+  alert('Cambio aplicado. Tu nuevo supervisor lo verá reflejado.');
+  cambiarTab('cambio');
+}
 
-            <!-- Notas rápidas -->
-            <div class="bg-white/5 rounded-xl p-3">
-                <h3 class="text-sm font-semibold"><i class="fas fa-sticky-note text-yellow-300"></i> Notas</h3>
-                <textarea id="quickNotes" rows="2" class="w-full bg-black/40 border border-white/20 rounded text-xs p-1" placeholder="Captura ideas..."></textarea>
-            </div>
+/* ============================================================
+   VISTA: APROBACIONES (supervisor)
+   ============================================================ */
+function renderAprobaciones() {
+  // Solicitudes pendientes de agentes de mi staff
+  const miStaff = DB.usuarios.filter(u => u.supervisorId === sesion.id).map(u => u.id);
+  const pendientes = DB.solicitudes.filter(s => s.estado === 'pendiente' && miStaff.includes(s.agenteId));
 
-            <!-- Timeline / Memoria -->
-            <div class="bg-white/5 rounded-xl p-3">
-                <h3 class="text-sm font-semibold flex justify-between"><span><i class="fas fa-history"></i> Timeline</span><button id="clearTimelineBtn" class="text-red-400 text-[10px]">Limpiar</button></h3>
-                <div id="timelineList" class="h-28 overflow-y-auto text-[10px] mt-1 space-y-1"></div>
-            </div>
+  let html = '';
+
+  if (pendientes.length > 0) {
+    html += pendientes.map(s => `
+      <div class="alerta-aprobacion">
+        <h3>⚠️ Solicitud de liga externa pendiente</h3>
+        <div class="detalle"><strong>Agente:</strong> ${s.agenteNombre}</div>
+        <div class="detalle"><strong>Destino:</strong> ${s.destino} (${s.canal})</div>
+        ${s.motivo ? `<div class="detalle"><strong>Motivo:</strong> ${s.motivo}</div>` : ''}
+        <div class="url-box">${s.url}</div>
+        <div class="acciones">
+          <button class="btn exito" onclick="aprobarSolicitud('${s.id}')">✅ Aprobar y enviar</button>
+          <button class="btn peligro" onclick="rechazarSolicitud('${s.id}')">❌ Rechazar</button>
         </div>
+      </div>
+    `).join('');
+  } else {
+    html += '<p class="vacio">No hay solicitudes pendientes. 🎉</p>';
+  }
+
+  // Historial de aprobaciones recientes de mi staff
+  const mias = DB.solicitudes.filter(s => miStaff.includes(s.agenteId) && s.estado !== 'pendiente').slice(0, 10);
+
+  html += `<div class="tarjeta"><h2>📜 Historial de aprobaciones</h2>`;
+  if (mias.length === 0) {
+    html += '<p class="vacio">Sin historial todavía.</p>';
+  } else {
+    html += mias.map(s => `
+      <div class="item-historial">
+        <div class="info">
+          <strong>${s.agenteNombre}</strong> — ${s.url}
+          <div class="meta">📅 ${new Date(s.fecha).toLocaleString('es-MX')} · ${s.destino}</div>
+        </div>
+        <span class="badge ${s.estado}">${s.estado}</span>
+      </div>
+    `).join('');
+  }
+  html += '</div>';
+
+  return html;
+}
+
+function aprobarSolicitud(id) {
+  const s = DB.solicitudes.find(x => x.id === id);
+  if (!s) return;
+
+  let mensaje = `Gobierno de México\n\nLiga de interés:\n${s.url}\n\nNo comparta este enlace.`;
+  const enlace = s.canal === 'whatsapp'
+    ? generarLinkWhatsApp(s.destino, mensaje)
+    : generarLinkCorreo(s.destino, 'Liga de interés', mensaje);
+
+  s.estado = 'aprobada';
+  s.enlace = enlace;
+  s.fechaAprobacion = new Date().toISOString();
+  s.aprobadorNombre = sesion.nombre;
+
+  DB.envios.unshift({
+    id: 'e' + Date.now(),
+    fecha: new Date().toISOString(),
+    agenteId: s.agenteId,
+    agenteNombre: s.agenteNombre,
+    tramiteNombre: '🔗 Liga externa',
+    tipo: 'externo',
+    destino: s.destino,
+    canal: s.canal,
+    enlace,
+    aprobadoPor: sesion.nombre
+  });
+  guardarDB();
+
+  if (s.canal === 'whatsapp') window.open(enlace, '_blank');
+  else window.location.href = enlace;
+
+  cambiarTab('aprobaciones');
+}
+
+function rechazarSolicitud(id) {
+  const motivo = prompt('Motivo del rechazo (opcional):');
+  const s = DB.solicitudes.find(x => x.id === id);
+  if (!s) return;
+  s.estado = 'rechazada';
+  s.motivoRechazo = motivo || '';
+  s.fechaRechazo = new Date().toISOString();
+  guardarDB();
+  cambiarTab('aprobaciones');
+}
+
+/* ============================================================
+   VISTA: HISTORIAL
+   ============================================================ */
+function renderHistorial() {
+  let envios = DB.envios;
+
+  if (sesion.rol === 'supervisor') {
+    const miStaff = DB.usuarios.filter(u => u.supervisorId === sesion.id).map(u => u.id);
+    envios = envios.filter(e => miStaff.includes(e.agenteId) || e.agenteId === sesion.id);
+  }
+
+  let html = `
+    <div class="tarjeta">
+      <div class="fila">
+        <h2>📋 Historial de envíos</h2>
+        <div>
+          <button class="btn chico secundario" onclick="exportarCSV()">📥 CSV</button>
+          <button class="btn chico secundario" onclick="window.print()">🖨️ PDF</button>
+        </div>
+      </div>
+  `;
+
+  if (envios.length === 0) {
+    html += '<p class="vacio">Sin envíos registrados.</p>';
+  } else {
+    html += envios.slice(0, 100).map(e => `
+      <div class="item-historial">
+        <div class="info">
+          <strong>${e.tramiteNombre}</strong>
+          <div class="meta">📅 ${new Date(e.fecha).toLocaleString('es-MX')} · 👤 ${e.agenteNombre} · 📨 ${e.destino}</div>
+          ${e.aprobadoPor ? `<div class="meta">✅ Aprobado por: ${e.aprobadoPor}</div>` : ''}
+        </div>
+        <div>
+          <span class="badge ${e.tipo}">${e.tipo}</span>
+          <span class="badge ${e.canal}">${e.canal}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+  html += '</div>';
+  return html;
+}
+
+function exportarCSV() {
+  let envios = DB.envios;
+  if (sesion.rol === 'supervisor') {
+    const miStaff = DB.usuarios.filter(u => u.supervisorId === sesion.id).map(u => u.id);
+    envios = envios.filter(e => miStaff.includes(e.agenteId) || e.agenteId === sesion.id);
+  }
+
+  const headers = ['Fecha', 'Agente', 'Trámite', 'Tipo', 'Canal', 'Destino'];
+  const filas = envios.map(e => [
+    new Date(e.fecha).toLocaleString('es-MX'),
+    e.agenteNombre,
+    e.tramiteNombre,
+    e.tipo,
+    e.canal,
+    e.destino
+  ]);
+
+  const csv = [headers, ...filas].map(f => f.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `historial_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   VISTA: MÉTRICAS
+   ============================================================ */
+function renderMetricas() {
+  let envios = DB.envios;
+  if (sesion.rol === 'supervisor') {
+    const miStaff = DB.usuarios.filter(u => u.supervisorId === sesion.id).map(u => u.id);
+    envios = envios.filter(e => miStaff.includes(e.agenteId) || e.agenteId === sesion.id);
+  }
+
+  const hoy = new Date().toDateString();
+  const enviosHoy = envios.filter(e => new Date(e.fecha).toDateString() === hoy);
+  const porCanal = { whatsapp: 0, correo: 0 };
+  envios.forEach(e => porCanal[e.canal]++);
+
+  return `
+    <div class="tarjeta">
+      <h2>📊 Métricas ${sesion.rol === 'supervisor' ? 'de mi staff' : 'globales'}</h2>
+      <div class="metricas-grid">
+        <div class="metrica"><div class="numero">${envios.length}</div><div class="etiqueta">Total envíos</div></div>
+        <div class="metrica"><div class="numero">${enviosHoy.length}</div><div class="etiqueta">Envíos hoy</div></div>
+        <div class="metrica"><div class="numero">${porCanal.whatsapp}</div><div class="etiqueta">WhatsApp</div></div>
+        <div class="metrica"><div class="numero">${porCanal.correo}</div><div class="etiqueta">Correo</div></div>
+      </div>
     </div>
 
-    <script>
-        // Inicializar Fabric.js canvas
-        const canvas = new fabric.Canvas('canvas-container', {
-            backgroundColor: 'rgba(0,0,0,0)',
-            selection: true,
-            preserveObjectStacking: true,
-            width: window.innerWidth - 450, // ajuste dinámico
-            height: window.innerHeight - 80
-        });
-        // Resize handler
-        function resizeCanvas() {
-            const container = document.getElementById('canvas-container');
-            canvas.setWidth(container.clientWidth);
-            canvas.setHeight(container.clientHeight);
-            canvas.renderAll();
-        }
-        window.addEventListener('resize', () => setTimeout(resizeCanvas, 100));
-        setTimeout(resizeCanvas, 100);
+    <div class="tarjeta">
+      <h2>🏆 Top trámites</h2>
+      ${topTramites(envios)}
+    </div>
+  `;
+}
 
-        // Estado global
-        let currentTool = 'select';
-        let isDrawingMode = false;
-        let historyStack = [];
-        let historyIndex = -1;
-        let timelineEvents = [];
-        let library = []; // { id, name, dataURL (json), thumbnail }
-        let references = [];
-        let sketchData = null;
-        let selectedObject = null;
+function topTramites(envios) {
+  const conteo = {};
+  envios.forEach(e => {
+    conteo[e.tramiteNombre] = (conteo[e.tramiteNombre] || 0) + 1;
+  });
+  const ordenados = Object.entries(conteo).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  if (ordenados.length === 0) return '<p class="vacio">Sin datos.</p>';
+  return ordenados.map(([nombre, n], i) =>
+    `<div class="item-historial"><div class="info"><strong>${i + 1}. ${nombre}</strong></div><span class="badge catalogo">${n} envíos</span></div>`
+  ).join('');
+}
 
-        // --- Funciones auxiliares ---
-        function addTimelineEvent(action, detail) {
-            const event = { timestamp: new Date().toLocaleTimeString(), action, detail };
-            timelineEvents.unshift(event);
-            renderTimeline();
-            saveToLocalStorage();
-        }
-
-        function renderTimeline() {
-            const container = document.getElementById('timelineList');
-            if(timelineEvents.length === 0) {
-                container.innerHTML = '<div class="text-gray-500">Sin actividad</div>';
-                return;
-            }
-            container.innerHTML = timelineEvents.slice(0, 25).map(ev => `
-                <div class="timeline-item">
-                    <span class="text-blue-300">[${ev.timestamp}]</span> <strong>${ev.action}</strong> ${ev.detail ? `: ${ev.detail}` : ''}
+/* ============================================================
+   VISTA: CATÁLOGO ADMIN (principal)
+   ============================================================ */
+function renderCatalogoAdmin() {
+  return `
+    <div class="tarjeta">
+      <div class="fila">
+        <h2>📚 Catálogo de trámites</h2>
+        <button class="btn chico" onclick="nuevoTramite()">➕ Nuevo trámite</button>
+      </div>
+      <div id="lista-admin-catalogo">
+        ${DB.catalogo.map(t => `
+          <div class="catalogo-item">
+            <div class="fila">
+              <div style="flex:1">
+                <div class="titulo">${t.nombre}</div>
+                <div class="desc">${t.descripcion}</div>
+                <div class="links-preview">
+                  <span>🔗 ${t.urlPagina}</span>
+                  ${t.infografias.map(i => `<span>📄 ${i.nombre}: ${i.url}</span>`).join('')}
+                  ${t.videoTutorial ? `<span>🎥 ${t.videoTutorial.nombre}: ${t.videoTutorial.url}</span>` : ''}
                 </div>
-            `).join('');
-        }
+              </div>
+              <div class="acciones-item">
+                <button class="btn chico secundario" onclick="editarTramite('${t.id}')">✏️ Editar</button>
+                <button class="btn chico peligro" onclick="eliminarTramite('${t.id}')">🗑️</button>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
 
-        function saveToLocalStorage() {
-            const canvasState = JSON.stringify(canvas.toJSON(['purpose']));
-            const state = {
-                canvasState,
-                library,
-                references,
-                sketchData,
-                notes: document.getElementById('quickNotes').value,
-                timelineEvents
-            };
-            localStorage.setItem('vpo_final_project', JSON.stringify(state));
-            addTimelineEvent('Guardado automático', 'proyecto persistido');
-        }
+function nuevoTramite() {
+  const nombre = prompt('Nombre del trámite:');
+  if (!nombre) return;
+  const descripcion = prompt('Descripción:') || '';
+  const urlPagina = prompt('URL de la página oficial:');
+  if (!urlPagina) return;
 
-        function loadFromLocalStorage() {
-            const raw = localStorage.getItem('vpo_final_project');
-            if(!raw) {
-                addExampleObjects();
-                return;
-            }
-            try {
-                const state = JSON.parse(raw);
-                if(state.canvasState) {
-                    canvas.loadFromJSON(state.canvasState, () => {
-                        canvas.renderAll();
-                        canvas.getObjects().forEach(obj => obj.set('selectable', true));
-                    });
-                }
-                library = state.library || [];
-                references = state.references || [];
-                sketchData = state.sketchData || null;
-                document.getElementById('quickNotes').value = state.notes || '';
-                timelineEvents = state.timelineEvents || [];
-                renderLibrary();
-                renderReferences();
-                renderSketch();
-                renderTimeline();
-            } catch(e) { addExampleObjects(); }
-        }
+  const infografias = [];
+  const numInfo = parseInt(prompt('¿Cuántas infografías? (0 si no hay)') || '0');
+  for (let i = 0; i < numInfo; i++) {
+    const n = prompt(`Nombre infografía ${i + 1}:`);
+    const u = prompt(`URL infografía ${i + 1}:`);
+    if (n && u) infografias.push({ nombre: n, url: u });
+  }
 
-        function addExampleObjects() {
-            // Agregar unos ejemplos para demostración: un rectángulo y un texto
-            const rect = new fabric.Rect({
-                left: 50, top: 50, width: 150, height: 80,
-                fill: 'rgba(59,130,246,0.3)', stroke: '#3b82f6', strokeWidth: 2,
-                purpose: 'Barra de título'
-            });
-            const text = new fabric.Text('Título principal', {
-                left: 70, top: 70, fontSize: 20, fill: 'white',
-                purpose: 'Texto de cabecera'
-            });
-            canvas.add(rect, text);
-            canvas.renderAll();
-            addTimelineEvent('Ejemplos iniciales', 'rectángulo y texto añadidos');
-        }
+  let videoTutorial = null;
+  const tieneVideo = confirm('¿Tiene video tutorial?');
+  if (tieneVideo) {
+    const n = prompt('Nombre del video:');
+    const u = prompt('URL del video:');
+    if (n && u) videoTutorial = { nombre: n, url: u };
+  }
 
-        // Guardar objeto seleccionado en biblioteca
-        function saveSelectedToLibrary() {
-            const obj = canvas.getActiveObject();
-            if(!obj) { alert("Selecciona un objeto primero"); return; }
-            const name = prompt("Nombre para este diseño:", obj.purpose || "Mi diseño");
-            if(!name) return;
-            const objData = JSON.stringify(obj.toJSON(['purpose']));
-            const thumbnail = obj.toDataURL({ multiplier: 0.2 });
-            const newItem = { id: Date.now(), name, data: objData, thumbnail };
-            library.push(newItem);
-            renderLibrary();
-            addTimelineEvent('Guardado en biblioteca', `${name}`);
-            saveToLocalStorage();
-        }
+  DB.catalogo.push({
+    id: 't' + Date.now(),
+    nombre, descripcion, urlPagina, infografias, videoTutorial
+  });
+  guardarDB();
+  cambiarTab('catalogo');
+}
 
-        function renderLibrary() {
-            const container = document.getElementById('libraryList');
-            if(library.length === 0) {
-                container.innerHTML = '<span class="text-gray-500 text-xs">Guarda objetos que te gusten</span>';
-                return;
-            }
-            container.innerHTML = library.map(item => `
-                <div class="library-item w-20 text-center" data-id="${item.id}">
-                    <img src="${item.thumbnail}" class="w-16 h-16 object-contain bg-white/5 rounded mb-1">
-                    <span class="text-[10px] block truncate">${item.name}</span>
-                </div>
-            `).join('');
-            document.querySelectorAll('.library-item').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    const id = parseInt(el.dataset.id);
-                    const item = library.find(i => i.id === id);
-                    if(item) {
-                        fabric.util.enlivenObjects([JSON.parse(item.data)], (objects) => {
-                            const obj = objects[0];
-                            obj.set({ left: 100, top: 100 });
-                            canvas.add(obj);
-                            canvas.setActiveObject(obj);
-                            canvas.renderAll();
-                            addTimelineEvent('Insertado de biblioteca', item.name);
-                            saveToLocalStorage();
-                        });
-                    }
-                });
-            });
-        }
+function editarTramite(id) {
+  const t = DB.catalogo.find(x => x.id === id);
+  if (!t) return;
+  const nombre = prompt('Nombre:', t.nombre);
+  if (nombre) t.nombre = nombre;
+  const descripcion = prompt('Descripción:', t.descripcion);
+  if (descripcion !== null) t.descripcion = descripcion;
+  const urlPagina = prompt('URL página:', t.urlPagina);
+  if (urlPagina) t.urlPagina = urlPagina;
 
-        // Referencias visuales
-        function renderReferences() {
-            const container = document.getElementById('refThumbs');
-            if(!references.length) { container.innerHTML = '<span class="text-gray-500 text-[10px]">Sin referencias</span>'; return; }
-            container.innerHTML = references.map((url, idx) => `
-                <div class="relative w-12 h-12">
-                    <img src="${url}" class="w-full h-full object-cover rounded border border-white/20">
-                    <button class="remove-ref absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-[8px]" data-idx="${idx}">✕</button>
-                </div>
-            `).join('');
-            document.querySelectorAll('.remove-ref').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const idx = parseInt(btn.dataset.idx);
-                    references.splice(idx, 1);
-                    renderReferences();
-                    saveToLocalStorage();
-                });
-            });
-        }
+  guardarDB();
+  cambiarTab('catalogo');
+}
 
-        function renderSketch() {
-            const container = document.getElementById('sketchPreview');
-            if(sketchData) {
-                container.innerHTML = `<img src="${sketchData}" class="max-h-12 rounded border border-amber-400"><button id="clearSketchBtn" class="text-red-400 text-[10px] ml-1">Eliminar</button>`;
-                document.getElementById('clearSketchBtn')?.addEventListener('click', () => { sketchData = null; renderSketch(); saveToLocalStorage(); });
-            } else {
-                container.innerHTML = '<span class="text-gray-500 text-[10px]">Ningún boceto</span>';
-            }
-        }
+function eliminarTramite(id) {
+  if (!confirm('¿Eliminar este trámite del catálogo?')) return;
+  DB.catalogo = DB.catalogo.filter(t => t.id !== id);
+  guardarDB();
+  cambiarTab('catalogo');
+}
 
-        // --- Herramientas de dibujo (formas predefinidas) ---
-        function addShape(type) {
-            let shape;
-            const colors = ['rgba(59,130,246,0.3)', 'rgba(168,85,247,0.3)'];
-            const stroke = '#3b82f6';
-            switch(type) {
-                case 'rect':
-                    shape = new fabric.Rect({ width: 120, height: 80, fill: colors[0], stroke, strokeWidth: 2, purpose: 'Rectángulo' });
-                    break;
-                case 'circle':
-                    shape = new fabric.Circle({ radius: 40, fill: colors[0], stroke, strokeWidth: 2, purpose: 'Círculo' });
-                    break;
-                case 'triangle':
-                    shape = new fabric.Triangle({ width: 80, height: 80, fill: colors[0], stroke, strokeWidth: 2, purpose: 'Triángulo' });
-                    break;
-                case 'line':
-                    shape = new fabric.Line([0,0,100,0], { stroke: 'white', strokeWidth: 3, purpose: 'Línea' });
-                    break;
-                case 'arrow':
-                    shape = new fabric.Triangle({ width: 20, height: 20, fill: 'white', left: 100, top: 0, angle: 90 });
-                    const line = new fabric.Line([0,0,80,0], { stroke: 'white', strokeWidth: 2 });
-                    shape = new fabric.Group([line, shape], { left: 100, top: 100, purpose: 'Flecha' });
-                    break;
-                case 'star':
-                    const starPath = "M 0,-40 L 10,-10 L 40,-10 L 15,10 L 25,40 L 0,20 L -25,40 L -15,10 L -40,-10 L -10,-10 Z";
-                    shape = new fabric.Path(starPath, { fill: colors[0], stroke, strokeWidth: 2, scaleX: 0.8, scaleY: 0.8, purpose: 'Estrella' });
-                    break;
-                case 'heart':
-                    const heartPath = "M 0,-20 A 15,15 0 0,1 30,-20 A 15,15 0 0,1 60,-20 Q 60,10 30,40 Q 0,10 0,-20 Z";
-                    shape = new fabric.Path(heartPath, { fill: 'rgba(236,72,153,0.5)', stroke: '#ec4899', strokeWidth: 2, purpose: 'Corazón' });
-                    break;
-                case 'cloud':
-                    const cloudPath = "M 30,40 a 20,20 0 0,1 0,-40 a 25,25 0 0,1 45,-5 a 20,20 0 0,1 35,15 a 15,15 0 0,1 0,30 z";
-                    shape = new fabric.Path(cloudPath, { fill: colors[0], stroke, strokeWidth: 2, scaleX: 1.2, purpose: 'Nube' });
-                    break;
-                default: return;
-            }
-            shape.set({ left: 150, top: 150 });
-            canvas.add(shape);
-            canvas.setActiveObject(shape);
-            canvas.renderAll();
-            addTimelineEvent(`Añadido ${type}`, '');
-            saveToLocalStorage();
-        }
+/* ============================================================
+   VISTA: SUPERVISORES (principal)
+   ============================================================ */
+function renderSupervisores() {
+  const supervisores = DB.usuarios.filter(u => u.rol === 'supervisor');
+  return `
+    <div class="tarjeta">
+      <div class="fila">
+        <h2>👥 Supervisores (${supervisores.length})</h2>
+        <button class="btn chico" onclick="nuevoSupervisor()">➕ Nuevo</button>
+      </div>
+      ${supervisores.map(s => {
+        const staff = DB.usuarios.filter(u => u.supervisorId === s.id);
+        return `
+          <div class="catalogo-item">
+            <div class="fila">
+              <div style="flex:1">
+                <div class="titulo">${s.nombre}</div>
+                <div class="desc">Usuario: ${s.usuario} · ${s.turno || 'Sin turno'}</div>
+                <div class="desc">Staff: ${staff.length} agentes (${staff.map(a => a.nombre).join(', ') || 'ninguno'})</div>
+              </div>
+              <div class="acciones-item">
+                <button class="btn chico peligro" onclick="eliminarUsuario('${s.id}')">🗑️</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
 
-        function addText() {
-            const text = new fabric.IText('Nuevo texto', {
-                left: 150, top: 150, fontSize: 20, fill: 'white', purpose: 'Texto'
-            });
-            canvas.add(text);
-            canvas.setActiveObject(text);
-            canvas.renderAll();
-            addTimelineEvent('Añadido texto', '');
-            saveToLocalStorage();
-        }
+    <div class="tarjeta">
+      <h2>👤 Agentes</h2>
+      ${DB.usuarios.filter(u => u.rol === 'agente').map(a => `
+        <div class="item-historial">
+          <div class="info"><strong>${a.nombre}</strong> <span class="meta">(${a.usuario})</span></div>
+          <span class="badge catalogo">${DB.usuarios.find(u => u.id === a.supervisorId)?.nombre || 'Sin supervisor'}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 
-        // --- Dibujo libre (lápiz) ---
-        function enableDrawing() {
-            canvas.isDrawingMode = true;
-            canvas.freeDrawingBrush.color = '#3b82f6';
-            canvas.freeDrawingBrush.width = 3;
-            currentTool = 'pencil';
-            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tool-pencil').classList.add('active');
-        }
-        function disableDrawing() {
-            canvas.isDrawingMode = false;
-        }
+function nuevoSupervisor() {
+  const nombre = prompt('Nombre del supervisor:');
+  if (!nombre) return;
+  const usuario = prompt('Usuario (sin espacios):');
+  if (!usuario) return;
+  const password = prompt('Contraseña:');
+  if (!password) return;
+  const turno = prompt('Turno (ej: Turno 1, Turno 2):') || '';
 
-        // --- Selección de herramienta ---
-        function setTool(tool) {
-            disableDrawing();
-            currentTool = tool;
-            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-            if(tool === 'pencil') {
-                enableDrawing();
-            } else {
-                if(tool === 'select') canvas.selection = true;
-                else canvas.selection = false;
-            }
-            const btnMap = { select:'tool-select', rect:'tool-rect', circle:'tool-circle', triangle:'tool-triangle', line:'tool-line', arrow:'tool-arrow', star:'tool-star', heart:'tool-heart', cloud:'tool-cloud', text:'tool-text', pencil:'tool-pencil' };
-            if(btnMap[tool]) document.getElementById(btnMap[tool]).classList.add('active');
-        }
+  DB.usuarios.push({
+    id: 'u' + Date.now(),
+    nombre, usuario, password, rol: 'supervisor', turno, seguimientoId: null
+  });
+  guardarDB();
+  cambiarTab('supervisores');
+}
 
-        // --- IA Asistente ---
-        function aiSuggestion() {
-            const objects = canvas.getObjects();
-            let msg = "";
-            if(objects.length === 0) msg = "No hay elementos. Empieza dibujando formas o texto.";
-            else {
-                const hasPurpose = objects.some(obj => obj.purpose && obj.purpose !== "");
-                if(!hasPurpose) msg = "Sugerencia: Agrega etiquetas semánticas a tus elementos (ej: 'barra de navegación', 'botón principal') para mejorar el prompt visual.";
-                else {
-                    const rects = objects.filter(obj => obj.type === 'rect');
-                    if(rects.length > 3) msg = "Hay varios rectángulos. Verifica que la jerarquía visual (tamaños y posiciones) refleje la importancia de cada elemento.";
-                    else msg = "Buena estructura. Puedes guardar algún elemento que te guste en 'Mis diseños' para reutilizarlo después.";
-                }
-            }
-            const aiDiv = document.getElementById('aiMessages');
-            const newMsg = document.createElement('div');
-            newMsg.className = 'text-blue-300';
-            newMsg.innerHTML = `🤖 ${msg}`;
-            aiDiv.appendChild(newMsg);
-            aiDiv.scrollTop = aiDiv.scrollHeight;
-            addTimelineEvent('Asistente IA', msg.substring(0,50));
-        }
+function eliminarUsuario(id) {
+  if (!confirm('¿Eliminar este usuario?')) return;
+  DB.usuarios = DB.usuarios.filter(u => u.id !== id);
+  // Reasignar agentes huérfanos
+  DB.usuarios.forEach(u => {
+    if (u.supervisorId === id) u.supervisorId = null;
+  });
+  guardarDB();
+  cambiarTab('supervisores');
+}
 
-        // --- Generar Prompt Visual ---
-        function generateVisualPrompt() {
-            const objects = canvas.getObjects();
-            let prompt = "=== VISUAL PROMPT ORCHESTRATOR (VPO) ===\n";
-            prompt += "La siguiente disposición debe ser respetada EXACTAMENTE por la IA constructora:\n\n";
-            objects.forEach((obj, idx) => {
-                let type = obj.type;
-                if(obj.path) type = "forma personalizada";
-                let left = Math.round(obj.left);
-                let top = Math.round(obj.top);
-                let width = Math.round(obj.width * obj.scaleX);
-                let height = Math.round(obj.height * obj.scaleY);
-                let purpose = obj.purpose || "sin etiqueta";
-                prompt += `${idx+1}. ${type.toUpperCase()} - Propósito: "${purpose}"\n`;
-                prompt += `   Posición: X=${left}px, Y=${top}px | Tamaño: ${width}x${height}px\n`;
-                if(obj.text) prompt += `   Contenido textual: "${obj.text}"\n`;
-                prompt += "\n";
-            });
-            prompt += `Notas del proyecto: ${document.getElementById('quickNotes').value}\n`;
-            if(references.length) prompt += `Referencias visuales: ${references.length} imágenes subidas (inspiración de estilo).\n`;
-            if(sketchData) prompt += `Boceto original disponible.\n`;
-            prompt += `Instrucción final: Genera código HTML/CSS/JS que reproduzca esta estructura con posicionamiento absoluto, respetando tamaños y etiquetas.`;
-            return prompt;
-        }
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function limpiarTelefono(t) { return t.replace(/\D/g, ''); }
 
-        async function copyPrompt() {
-            const prompt = generateVisualPrompt();
-            await navigator.clipboard.writeText(prompt);
-            alert("Prompt Visual copiado al portapapeles. Pégalo en ChatGPT, Claude o cualquier IA.");
-            addTimelineEvent('Prompt copiado', '');
-        }
+function generarLinkWhatsApp(telefono, mensaje) {
+  const numero = limpiarTelefono(telefono);
+  const texto = encodeURIComponent(mensaje);
+  return `https://wa.me/${numero}?text=${texto}`;
+}
 
-        function exportToAI(aiName) {
-            const prompt = generateVisualPrompt();
-            const encoded = encodeURIComponent(prompt);
-            let url = '';
-            switch(aiName) {
-                case 'ChatGPT': url = `https://chat.openai.com/?q=${encoded}`; break;
-                case 'Claude': url = `https://claude.ai/new?q=${encoded}`; break;
-                case 'Gemini': url = `https://gemini.google.com/?q=${encoded}`; break;
-                default: url = `https://www.google.com/search?q=IA+constructor+${aiName}`;
-            }
-            window.open(url, '_blank');
-            addTimelineEvent(`Exportado a ${aiName}`, '');
-        }
+function generarLinkCorreo(correo, asunto, mensaje) {
+  return `mailto:${correo}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(mensaje)}`;
+}
 
-        // --- Manejo de eventos del canvas (selección, modificaciones) ---
-        canvas.on('object:modified', () => { saveToLocalStorage(); addTimelineEvent('Modificado', 'objeto'); });
-        canvas.on('object:added', () => { saveToLocalStorage(); addTimelineEvent('Añadido', 'objeto'); });
-        canvas.on('object:removed', () => { saveToLocalStorage(); addTimelineEvent('Eliminado', 'objeto'); });
-        canvas.on('selection:created', (e) => { selectedObject = e.selected?.[0]; updatePropertyPanel(); });
-        canvas.on('selection:updated', (e) => { selectedObject = e.selected?.[0]; updatePropertyPanel(); });
-        canvas.on('selection:cleared', () => { selectedObject = null; updatePropertyPanel(); });
-
-        function updatePropertyPanel() {
-            const panel = document.getElementById('propertyPanel');
-            if(!selectedObject) {
-                panel.innerHTML = '<p class="text-gray-400 italic">Selecciona un objeto</p>';
-                return;
-            }
-            const obj = selectedObject;
-            panel.innerHTML = `
-                <div><label>Tipo: ${obj.type}</label></div>
-                <div><label>Propósito semántico:</label><input id="objPurpose" value="${obj.purpose || ''}" placeholder="ej: barra de título"></div>
-                <div><label>Posición X:</label><input id="objX" type="number" value="${Math.round(obj.left)}" step="1"></div>
-                <div><label>Posición Y:</label><input id="objY" type="number" value="${Math.round(obj.top)}" step="1"></div>
-                <div><label>Ancho:</label><input id="objW" type="number" value="${Math.round(obj.width * obj.scaleX)}" step="1"></div>
-                <div><label>Alto:</label><input id="objH" type="number" value="${Math.round(obj.height * obj.scaleY)}" step="1"></div>
-                <button id="applyProps" class="bg-blue-600 w-full py-1 rounded text-xs mt-2">Aplicar</button>
-            `;
-            document.getElementById('applyProps')?.addEventListener('click', () => {
-                obj.purpose = document.getElementById('objPurpose').value;
-                let x = parseInt(document.getElementById('objX').value);
-                let y = parseInt(document.getElementById('objY').value);
-                let w = parseInt(document.getElementById('objW').value);
-                let h = parseInt(document.getElementById('objH').value);
-                if(!isNaN(x)) obj.left = x;
-                if(!isNaN(y)) obj.top = y;
-                if(!isNaN(w) && w>0) obj.scaleX = w / obj.width;
-                if(!isNaN(h) && h>0) obj.scaleY = h / obj.height;
-                obj.setCoords();
-                canvas.renderAll();
-                saveToLocalStorage();
-                updatePropertyPanel();
-                addTimelineEvent('Propiedades actualizadas', obj.purpose);
-            });
-        }
-
-        // --- Guardar/Deshacer/Rehacer (simple) ---
-        function saveHistory() { /* omitimos implementación completa por brevedad, pero se puede extender */ }
-        
-        // --- Inicialización de UI y eventos ---
-        function initUI() {
-            document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
-            document.getElementById('tool-rect').addEventListener('click', () => { setTool('rect'); addShape('rect'); });
-            document.getElementById('tool-circle').addEventListener('click', () => { setTool('circle'); addShape('circle'); });
-            document.getElementById('tool-triangle').addEventListener('click', () => { setTool('triangle'); addShape('triangle'); });
-            document.getElementById('tool-line').addEventListener('click', () => { setTool('line'); addShape('line'); });
-            document.getElementById('tool-arrow').addEventListener('click', () => { setTool('arrow'); addShape('arrow'); });
-            document.getElementById('tool-star').addEventListener('click', () => { setTool('star'); addShape('star'); });
-            document.getElementById('tool-heart').addEventListener('click', () => { setTool('heart'); addShape('heart'); });
-            document.getElementById('tool-cloud').addEventListener('click', () => { setTool('cloud'); addShape('cloud'); });
-            document.getElementById('tool-text').addEventListener('click', () => { setTool('text'); addText(); });
-            document.getElementById('tool-pencil').addEventListener('click', () => setTool('pencil'));
-            document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
-                const active = canvas.getActiveObject();
-                if(active) canvas.remove(active);
-                canvas.discardActiveObject();
-                canvas.renderAll();
-                addTimelineEvent('Eliminado objeto', '');
-                saveToLocalStorage();
-            });
-            document.getElementById('saveToLibraryBtn').addEventListener('click', saveSelectedToLibrary);
-            document.getElementById('askAiBtn').addEventListener('click', aiSuggestion);
-            document.getElementById('generatePromptBtn').addEventListener('click', () => { generateVisualPrompt(); alert('Prompt generado. Cópialo con el botón "Copiar Prompt"'); });
-            document.getElementById('copyPromptBtn').addEventListener('click', copyPrompt);
-            document.getElementById('clearCanvasBtn').addEventListener('click', () => {
-                if(confirm('¿Eliminar todos los objetos?')) {
-                    canvas.clear();
-                    canvas.backgroundColor = 'rgba(0,0,0,0)';
-                    canvas.renderAll();
-                    addTimelineEvent('Canvas limpiado', '');
-                    saveToLocalStorage();
-                }
-            });
-            document.getElementById('undoBtn').addEventListener('click', () => { /* placeholder */ alert('Funcionalidad de deshacer compleja; usa guardado automático.'); });
-            document.getElementById('redoBtn').addEventListener('click', () => { alert('Rehacer no implementado aún'); });
-            document.getElementById('clearTimelineBtn').addEventListener('click', () => { timelineEvents = []; renderTimeline(); saveToLocalStorage(); });
-            // Referencias
-            document.getElementById('uploadRefBtn').addEventListener('click', () => document.getElementById('refUpload').click());
-            document.getElementById('refUpload').addEventListener('change', (e) => {
-                Array.from(e.target.files).forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        references.push(ev.target.result);
-                        renderReferences();
-                        saveToLocalStorage();
-                    };
-                    reader.readAsDataURL(file);
-                });
-            });
-            document.getElementById('uploadSketchBtn').addEventListener('click', () => document.getElementById('sketchUpload').click());
-            document.getElementById('sketchUpload').addEventListener('change', (e) => {
-                if(e.target.files[0]) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        sketchData = ev.target.result;
-                        renderSketch();
-                        saveToLocalStorage();
-                    };
-                    reader.readAsDataURL(e.target.files[0]);
-                }
-            });
-            document.getElementById('quickNotes').addEventListener('input', () => saveToLocalStorage());
-            // Exportación Multi-IA (agregar botones flotantes o en el panel? Lo añadimos en la barra superior)
-            const exportBar = document.createElement('div');
-            exportBar.className = 'flex gap-2 ml-4';
-            exportBar.innerHTML = `
-                <span class="text-xs text-gray-300 self-center">Exportar a:</span>
-                <button data-ai="ChatGPT" class="export-ai bg-green-700/70 px-2 py-1 rounded text-xs">ChatGPT</button>
-                <button data-ai="Claude" class="export-ai bg-orange-700/70 px-2 py-1 rounded text-xs">Claude</button>
-                <button data-ai="Gemini" class="export-ai bg-blue-700/70 px-2 py-1 rounded text-xs">Gemini</button>
-                <button data-ai="Cursor" class="export-ai bg-gray-700/70 px-2 py-1 rounded text-xs">Cursor</button>
-                <button data-ai="Devin" class="export-ai bg-indigo-700/70 px-2 py-1 rounded text-xs">Devin</button>
-                <button data-ai="Kimi" class="export-ai bg-red-700/70 px-2 py-1 rounded text-xs">Kimi</button>
-            `;
-            document.querySelector('.flex.gap-2.flex-wrap').appendChild(exportBar);
-            document.querySelectorAll('.export-ai').forEach(btn => {
-                btn.addEventListener('click', () => exportToAI(btn.dataset.ai));
-            });
-        }
-
-        loadFromLocalStorage();
-        initUI();
-        setTool('select');
-        canvas.renderAll();
-    </script>
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  if (!restaurarSesion()) {
+    document.getElementById('vista-login').style.display = 'flex';
+  }
+});
+</script>
 </body>
 </html>
