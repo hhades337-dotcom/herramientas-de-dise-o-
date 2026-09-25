@@ -10,7 +10,6 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #eef2f7; color: #1a202c; line-height: 1.6; min-height: 100vh;
   }
-  /* LOGIN */
   .login-container {
     display: flex; align-items: center; justify-content: center;
     min-height: 100vh; background: linear-gradient(135deg, #611232 0%, #3d0b1f 100%);
@@ -37,7 +36,6 @@
   .login-hint { margin-top: 1.5rem; padding: 0.75rem; background: #f7fafc; border-radius: 6px; font-size: 0.8rem; color: #4a5568; }
   .login-hint strong { color: #611232; }
 
-  /* APP */
   .app { display: none; }
   .app.activo { display: block; }
   header.topbar {
@@ -115,7 +113,6 @@
   .alerta.advertencia { background: #fffaf0; border-left: 4px solid #dd6b20; }
   .alerta.peligro { background: #fff5f5; border-left: 4px solid #e53e3e; }
 
-  /* Alerta grande de aprobación */
   .alerta-aprobacion {
     background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
     border: 3px solid #e53e3e; border-radius: 10px; padding: 1.5rem;
@@ -134,7 +131,6 @@
   }
   .alerta-aprobacion .acciones { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 
-  /* Catálogo */
   .catalogo-item {
     border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;
     margin-bottom: 0.75rem; background: white;
@@ -151,7 +147,6 @@
     header.topbar { flex-direction: column; align-items: flex-start; }
   }
 
-  /* Historial */
   .item-historial {
     padding: 0.9rem; border-bottom: 1px solid #e2e8f0;
     display: flex; justify-content: space-between; align-items: flex-start;
@@ -173,7 +168,6 @@
   .badge.aprobada { background: #c6f6d5; color: #22543d; }
   .badge.rechazada { background: #fed7d7; color: #822727; }
 
-  /* Métricas */
   .metricas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
   .metrica {
     background: linear-gradient(135deg, #611232 0%, #8b1a4a 100%);
@@ -240,7 +234,7 @@
 
 <script>
 /* ============================================================
-   DATOS INICIALES (simulan la base de datos)
+   DATOS INICIALES
    ============================================================ */
 const DB_KEY = 'envia_links_db_v2';
 
@@ -256,30 +250,21 @@ function datosIniciales() {
       { id: 'u7', nombre: 'José Ramírez', usuario: 'agente3', password: 'agente123', rol: 'agente', supervisorId: 'u4' }
     ],
     catalogo: [
-      {
-        id: 't1', nombre: 'Consulta de CURP', descripcion: 'Consulta e imprime tu CURP en línea',
+      { id: 't1', nombre: 'Consulta de CURP', descripcion: 'Consulta e imprime tu CURP en línea',
         urlPagina: 'https://www.gob.mx/curp/',
         infografias: [{ nombre: 'Guía paso a paso CURP', url: 'https://drive.google.com/guia-curp' }],
-        videoTutorial: { nombre: 'Video: Cómo consultar tu CURP', url: 'https://youtube.com/curp-tutorial' }
-      },
-      {
-        id: 't2', nombre: 'Trámites del SAT', descripcion: 'Portal principal del SAT',
+        videoTutorial: { nombre: 'Video: Cómo consultar tu CURP', url: 'https://youtube.com/curp-tutorial' } },
+      { id: 't2', nombre: 'Trámites del SAT', descripcion: 'Portal principal del SAT',
         urlPagina: 'https://www.sat.gob.mx/',
         infografias: [{ nombre: 'Infografía SAT', url: 'https://drive.google.com/info-sat' }],
-        videoTutorial: { nombre: 'Video: Acceso al SAT', url: 'https://youtube.com/sat-tutorial' }
-      },
-      {
-        id: 't3', nombre: 'IMSS - Servicios digitales', descripcion: 'Trámites y servicios del IMSS',
+        videoTutorial: { nombre: 'Video: Acceso al SAT', url: 'https://youtube.com/sat-tutorial' } },
+      { id: 't3', nombre: 'IMSS - Servicios digitales', descripcion: 'Trámites y servicios del IMSS',
         urlPagina: 'https://www.imss.gob.mx/',
         infografias: [{ nombre: 'Guía IMSS', url: 'https://drive.google.com/guia-imss' }],
-        videoTutorial: { nombre: 'Video: Servicios IMSS', url: 'https://youtube.com/imss-tutorial' }
-      },
-      {
-        id: 't4', nombre: 'Acta de nacimiento', descripcion: 'Solicita tu acta de nacimiento',
+        videoTutorial: { nombre: 'Video: Servicios IMSS', url: 'https://youtube.com/imss-tutorial' } },
+      { id: 't4', nombre: 'Acta de nacimiento', descripcion: 'Solicita tu acta de nacimiento',
         urlPagina: 'https://www.gob.mx/actas',
-        infografias: [],
-        videoTutorial: null
-      }
+        infografias: [], videoTutorial: null }
     ],
     envios: [],
     solicitudes: [],
@@ -354,10 +339,8 @@ function mostrarApp() {
   document.getElementById('user-nombre').textContent = sesion.nombre;
   document.getElementById('user-rol').textContent = sesion.rol;
 
-  // Reset diario de cambios temporales
   resetCambiosDiarios();
 
-  // Definir tabs según rol
   const tabs = [];
   if (sesion.rol === 'agente') {
     tabs.push({ id: 'enviar', label: '📨 Enviar' });
@@ -365,12 +348,13 @@ function mostrarApp() {
     tabs.push({ id: 'cambio', label: '🔄 Cambio de supervisor' });
   } else if (sesion.rol === 'supervisor') {
     tabs.push({ id: 'aprobaciones', label: '⚠️ Aprobaciones' });
+    tabs.push({ id: 'staff', label: '👥 Mi staff' });
     tabs.push({ id: 'enviar', label: '📨 Enviar' });
     tabs.push({ id: 'historial', label: '📋 Historial' });
     tabs.push({ id: 'metricas', label: '📊 Métricas' });
   } else if (sesion.rol === 'principal') {
     tabs.push({ id: 'catalogo', label: '📚 Catálogo' });
-    tabs.push({ id: 'supervisores', label: '👥 Supervisores' });
+    tabs.push({ id: 'supervisores', label: '👥 Supervisores y agentes' });
     tabs.push({ id: 'historial', label: '📋 Historial global' });
     tabs.push({ id: 'metricas', label: '📊 Métricas' });
     tabs.push({ id: 'enviar', label: '📨 Enviar' });
@@ -381,7 +365,6 @@ function mostrarApp() {
     `<button onclick="cambiarTab('${t.id}')" id="tab-${t.id}" class="${i === 0 ? 'activo' : ''}">${t.label}</button>`
   ).join('');
 
-  // Renderizar el primer panel
   if (tabs.length > 0) cambiarTab(tabs[0].id);
 }
 
@@ -397,12 +380,12 @@ function cambiarTab(tabId) {
   else if (tabId === 'externo') paneles.innerHTML = renderExterno();
   else if (tabId === 'cambio') paneles.innerHTML = renderCambioSupervisor();
   else if (tabId === 'aprobaciones') paneles.innerHTML = renderAprobaciones();
+  else if (tabId === 'staff') paneles.innerHTML = renderStaff();
   else if (tabId === 'historial') paneles.innerHTML = renderHistorial();
   else if (tabId === 'metricas') paneles.innerHTML = renderMetricas();
   else if (tabId === 'catalogo') paneles.innerHTML = renderCatalogoAdmin();
   else if (tabId === 'supervisores') paneles.innerHTML = renderSupervisores();
 
-  // Re-inicializar lógica específica de cada panel
   if (tabId === 'enviar') inicializarEnviar();
 }
 
@@ -413,7 +396,6 @@ function resetCambiosDiarios() {
   const hoy = new Date().toDateString();
   DB.cambiosTemporales = DB.cambiosTemporales.filter(c => {
     if (c.fecha !== hoy) {
-      // Regresar al supervisor original
       const agente = DB.usuarios.find(u => u.id === c.agenteId);
       if (agente) agente.supervisorId = c.supervisorOriginalId;
       return false;
@@ -424,14 +406,21 @@ function resetCambiosDiarios() {
 }
 
 /* ============================================================
-   VISTA: ENVIAR (agente, supervisor, principal)
+   VISTA: ENVIAR
    ============================================================ */
+let tramiteSeleccionado = null;
+let mostrarTodosCatalogo = false;
+
 function renderEnviar() {
   return `
     <div class="tarjeta">
       <h2>📨 Enviar link de trámite</h2>
       <label for="buscar-tramite">Buscar trámite</label>
       <input type="text" id="buscar-tramite" placeholder="Escribe para filtrar..." oninput="filtrarCatalogo()">
+      <div class="fila" style="margin-top: 0.75rem;">
+        <button class="btn chico secundario" id="btn-ver-todos" onclick="toggleVerTodos()">👁️ Ver todos los trámites</button>
+        <span class="nota" id="contador-catalogo"></span>
+      </div>
       <div id="lista-catalogo" style="margin-top: 1rem; max-height: 400px; overflow-y: auto;"></div>
 
       <div id="form-envio-tramite" class="oculto" style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
@@ -456,22 +445,63 @@ function renderEnviar() {
   `;
 }
 
-let tramiteSeleccionado = null;
-
 function inicializarEnviar() {
   tramiteSeleccionado = null;
+  mostrarTodosCatalogo = false;
   filtrarCatalogo();
+}
+
+function toggleVerTodos() {
+  mostrarTodosCatalogo = !mostrarTodosCatalogo;
+  const btn = document.getElementById('btn-ver-todos');
+  if (btn) btn.textContent = mostrarTodosCatalogo ? '👁️ Ver solo recientes' : '👁️ Ver todos los trámites';
+  filtrarCatalogo();
+}
+
+function obtenerUltimosUsados() {
+  const key = 'envia_links_ultimos_' + (sesion?.id || 'anon');
+  const datos = localStorage.getItem(key);
+  return datos ? JSON.parse(datos) : [];
+}
+
+function guardarUltimoUsado(tramiteId) {
+  if (!sesion) return;
+  const key = 'envia_links_ultimos_' + sesion.id;
+  let lista = obtenerUltimosUsados();
+  lista = [tramiteId, ...lista.filter(id => id !== tramiteId)].slice(0, 5);
+  localStorage.setItem(key, JSON.stringify(lista));
 }
 
 function filtrarCatalogo() {
   const busqueda = (document.getElementById('buscar-tramite')?.value || '').toLowerCase();
   const lista = document.getElementById('lista-catalogo');
+  const contador = document.getElementById('contador-catalogo');
   if (!lista) return;
 
-  const filtrados = DB.catalogo.filter(t =>
-    t.nombre.toLowerCase().includes(busqueda) ||
-    t.descripcion.toLowerCase().includes(busqueda)
-  );
+  let filtrados;
+  let etiqueta = '';
+
+  if (busqueda) {
+    filtrados = DB.catalogo.filter(t =>
+      t.nombre.toLowerCase().includes(busqueda) ||
+      t.descripcion.toLowerCase().includes(busqueda)
+    );
+    etiqueta = `${filtrados.length} resultado(s)`;
+  } else if (mostrarTodosCatalogo) {
+    filtrados = DB.catalogo;
+    etiqueta = `${filtrados.length} trámites en total`;
+  } else {
+    const ids = obtenerUltimosUsados();
+    if (ids.length > 0) {
+      filtrados = ids.map(id => DB.catalogo.find(t => t.id === id)).filter(Boolean);
+      etiqueta = `Últimos ${filtrados.length} usados por ti`;
+    } else {
+      filtrados = DB.catalogo.slice(0, 5);
+      etiqueta = 'Sugeridos (aún no has enviado nada)';
+    }
+  }
+
+  if (contador) contador.textContent = etiqueta;
 
   if (filtrados.length === 0) {
     lista.innerHTML = '<p class="vacio">No se encontraron trámites.</p>';
@@ -527,12 +557,8 @@ function enviarTramite() {
   const destino = document.getElementById('destino').value.trim();
   const canal = document.querySelector('input[name="canal"]:checked').value;
 
-  if (!destino) {
-    alert('Ingresa el correo o teléfono del ciudadano.');
-    return;
-  }
+  if (!destino) { alert('Ingresa el correo o teléfono del ciudadano.'); return; }
 
-  // Construir mensaje
   let mensaje = `Gobierno de México\n\nTrámite: ${t.nombre}\n\n`;
   mensaje += `1. Página oficial:\n${t.urlPagina}\n\n`;
   t.infografias.forEach((info, i) => {
@@ -547,7 +573,6 @@ function enviarTramite() {
     ? generarLinkWhatsApp(destino, mensaje)
     : generarLinkCorreo(destino, `Trámite: ${t.nombre}`, mensaje);
 
-  // Registrar en historial
   DB.envios.unshift({
     id: 'e' + Date.now(),
     fecha: new Date().toISOString(),
@@ -560,11 +585,11 @@ function enviarTramite() {
   });
   guardarDB();
 
-  // Abrir enlace
+  guardarUltimoUsado(t.id);
+
   if (canal === 'whatsapp') window.open(enlace, '_blank');
   else window.location.href = enlace;
 
-  // Confirmación
   const conf = document.getElementById('confirmacion-envio');
   conf.innerHTML = `
     <div class="alerta exito">
@@ -579,10 +604,10 @@ function enviarTramite() {
 }
 
 /* ============================================================
-   VISTA: LIGA EXTERNA (agente)
+   VISTA: LIGA EXTERNA
    ============================================================ */
 function renderExterno() {
-  return `
+  const html = `
     <div class="tarjeta">
       <h2>🔗 Solicitar envío de liga externa</h2>
       <div class="alerta advertencia">
@@ -613,29 +638,28 @@ function renderExterno() {
       <h2>📋 Mis solicitudes</h2>
       <div id="mis-solicitudes"></div>
     </div>
-  ` + renderMisSolicitudes();
+  `;
+  setTimeout(renderMisSolicitudes, 50);
+  return html;
 }
 
 function renderMisSolicitudes() {
-  setTimeout(() => {
-    const cont = document.getElementById('mis-solicitudes');
-    if (!cont) return;
-    const mias = DB.solicitudes.filter(s => s.agenteId === sesion.id);
-    if (mias.length === 0) {
-      cont.innerHTML = '<p class="vacio">Aún no has solicitado ligas externas.</p>';
-      return;
-    }
-    cont.innerHTML = mias.map(s => `
-      <div class="item-historial">
-        <div class="info">
-          <strong>${s.url}</strong>
-          <div class="meta">📅 ${new Date(s.fecha).toLocaleString('es-MX')} · ${s.destino} · ${s.canal}</div>
-        </div>
-        <span class="badge ${s.estado}">${s.estado}</span>
+  const cont = document.getElementById('mis-solicitudes');
+  if (!cont) return;
+  const mias = DB.solicitudes.filter(s => s.agenteId === sesion.id);
+  if (mias.length === 0) {
+    cont.innerHTML = '<p class="vacio">Aún no has solicitado ligas externas.</p>';
+    return;
+  }
+  cont.innerHTML = mias.map(s => `
+    <div class="item-historial">
+      <div class="info">
+        <strong>${s.url}</strong>
+        <div class="meta">📅 ${new Date(s.fecha).toLocaleString('es-MX')} · ${s.destino} · ${s.canal}</div>
       </div>
-    `).join('');
-  }, 50);
-  return '';
+      <span class="badge ${s.estado}">${s.estado}</span>
+    </div>
+  `).join('');
 }
 
 function solicitarExterna() {
@@ -645,17 +669,10 @@ function solicitarExterna() {
   const motivo = document.getElementById('motivo-ext').value.trim();
 
   if (!url.startsWith('https://') || url.length < 12) {
-    alert('La URL debe iniciar con https:// y ser válida.');
-    return;
+    alert('La URL debe iniciar con https:// y ser válida.'); return;
   }
-  if (url.length > 200) {
-    alert('La URL excede 200 caracteres.');
-    return;
-  }
-  if (!destino) {
-    alert('Ingresa el destino.');
-    return;
-  }
+  if (url.length > 200) { alert('La URL excede 200 caracteres.'); return; }
+  if (!destino) { alert('Ingresa el destino.'); return; }
 
   const supervisorId = sesion.supervisorId || DB.usuarios.find(u => u.rol === 'supervisor')?.id;
 
@@ -681,12 +698,11 @@ function solicitarExterna() {
 }
 
 /* ============================================================
-   VISTA: CAMBIO DE SUPERVISOR (agente)
+   VISTA: CAMBIO DE SUPERVISOR
    ============================================================ */
 function renderCambioSupervisor() {
   const supervisorActual = DB.usuarios.find(u => u.id === sesion.supervisorId);
   const supervisores = DB.usuarios.filter(u => u.rol === 'supervisor');
-
   const cambioHoy = DB.cambiosTemporales.find(c => c.agenteId === sesion.id);
 
   return `
@@ -728,7 +744,6 @@ function cambiarSupervisor() {
     fecha: new Date().toDateString()
   });
 
-  // Actualizar en la DB
   const agente = DB.usuarios.find(u => u.id === sesion.id);
   agente.supervisorId = nuevoId;
   sesion.supervisorId = nuevoId;
@@ -742,7 +757,6 @@ function cambiarSupervisor() {
    VISTA: APROBACIONES (supervisor)
    ============================================================ */
 function renderAprobaciones() {
-  // Solicitudes pendientes de agentes de mi staff
   const miStaff = DB.usuarios.filter(u => u.supervisorId === sesion.id).map(u => u.id);
   const pendientes = DB.solicitudes.filter(s => s.estado === 'pendiente' && miStaff.includes(s.agenteId));
 
@@ -766,7 +780,6 @@ function renderAprobaciones() {
     html += '<p class="vacio">No hay solicitudes pendientes. 🎉</p>';
   }
 
-  // Historial de aprobaciones recientes de mi staff
   const mias = DB.solicitudes.filter(s => miStaff.includes(s.agenteId) && s.estado !== 'pendiente').slice(0, 10);
 
   html += `<div class="tarjeta"><h2>📜 Historial de aprobaciones</h2>`;
@@ -831,6 +844,51 @@ function rechazarSolicitud(id) {
   s.fechaRechazo = new Date().toISOString();
   guardarDB();
   cambiarTab('aprobaciones');
+}
+
+/* ============================================================
+   VISTA: MI STAFF (supervisor)
+   ============================================================ */
+function renderStaff() {
+  const miStaff = DB.usuarios.filter(u => u.supervisorId === sesion.id);
+  return `
+    <div class="tarjeta">
+      <div class="fila">
+        <h2>👥 Mi staff (${miStaff.length})</h2>
+        <button class="btn chico" onclick="nuevoAgenteStaff()">➕ Nuevo agente</button>
+      </div>
+      <p class="nota">Los agentes que crees aquí quedarán asignados automáticamente a tu staff.</p>
+      ${miStaff.length === 0 ? '<p class="vacio">Aún no tienes agentes en tu staff.</p>' : miStaff.map(a => `
+        <div class="item-historial">
+          <div class="info">
+            <strong>${a.nombre}</strong>
+            <div class="meta">Usuario: ${a.usuario}</div>
+          </div>
+          <button class="btn chico peligro" onclick="eliminarUsuario('${a.id}')">🗑️ Eliminar</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function nuevoAgenteStaff() {
+  const nombre = prompt('Nombre del agente:');
+  if (!nombre) return;
+  const usuario = prompt('Usuario (sin espacios):');
+  if (!usuario) return;
+  if (DB.usuarios.find(u => u.usuario === usuario)) { alert('Ese usuario ya existe.'); return; }
+  const password = prompt('Contraseña:');
+  if (!password) return;
+
+  DB.usuarios.push({
+    id: 'u' + Date.now(),
+    nombre, usuario, password,
+    rol: 'agente',
+    supervisorId: sesion.id
+  });
+  guardarDB();
+  alert('Agente creado y asignado a tu staff.');
+  cambiarTab('staff');
 }
 
 /* ============================================================
@@ -938,9 +996,7 @@ function renderMetricas() {
 
 function topTramites(envios) {
   const conteo = {};
-  envios.forEach(e => {
-    conteo[e.tramiteNombre] = (conteo[e.tramiteNombre] || 0) + 1;
-  });
+  envios.forEach(e => { conteo[e.tramiteNombre] = (conteo[e.tramiteNombre] || 0) + 1; });
   const ordenados = Object.entries(conteo).sort((a, b) => b[1] - a[1]).slice(0, 5);
   if (ordenados.length === 0) return '<p class="vacio">Sin datos.</p>';
   return ordenados.map(([nombre, n], i) =>
@@ -955,7 +1011,7 @@ function renderCatalogoAdmin() {
   return `
     <div class="tarjeta">
       <div class="fila">
-        <h2>📚 Catálogo de trámites</h2>
+        <h2>📚 Catálogo de trámites (${DB.catalogo.length})</h2>
         <button class="btn chico" onclick="nuevoTramite()">➕ Nuevo trámite</button>
       </div>
       <div id="lista-admin-catalogo">
@@ -999,8 +1055,7 @@ function nuevoTramite() {
   }
 
   let videoTutorial = null;
-  const tieneVideo = confirm('¿Tiene video tutorial?');
-  if (tieneVideo) {
+  if (confirm('¿Tiene video tutorial?')) {
     const n = prompt('Nombre del video:');
     const u = prompt('URL del video:');
     if (n && u) videoTutorial = { nombre: n, url: u };
@@ -1036,15 +1091,17 @@ function eliminarTramite(id) {
 }
 
 /* ============================================================
-   VISTA: SUPERVISORES (principal)
+   VISTA: SUPERVISORES Y AGENTES (principal)
    ============================================================ */
 function renderSupervisores() {
   const supervisores = DB.usuarios.filter(u => u.rol === 'supervisor');
+  const agentes = DB.usuarios.filter(u => u.rol === 'agente');
+
   return `
     <div class="tarjeta">
       <div class="fila">
         <h2>👥 Supervisores (${supervisores.length})</h2>
-        <button class="btn chico" onclick="nuevoSupervisor()">➕ Nuevo</button>
+        <button class="btn chico" onclick="nuevoSupervisor()">➕ Nuevo supervisor</button>
       </div>
       ${supervisores.map(s => {
         const staff = DB.usuarios.filter(u => u.supervisorId === s.id);
@@ -1066,11 +1123,24 @@ function renderSupervisores() {
     </div>
 
     <div class="tarjeta">
-      <h2>👤 Agentes</h2>
-      ${DB.usuarios.filter(u => u.rol === 'agente').map(a => `
+      <div class="fila">
+        <h2>👤 Agentes (${agentes.length})</h2>
+        <button class="btn chico" onclick="nuevoAgentePrincipal()">➕ Nuevo agente</button>
+      </div>
+      <p class="nota">Puedes reasignar cualquier agente a otro supervisor con el selector.</p>
+      ${agentes.length === 0 ? '<p class="vacio">Sin agentes.</p>' : agentes.map(a => `
         <div class="item-historial">
-          <div class="info"><strong>${a.nombre}</strong> <span class="meta">(${a.usuario})</span></div>
-          <span class="badge catalogo">${DB.usuarios.find(u => u.id === a.supervisorId)?.nombre || 'Sin supervisor'}</span>
+          <div class="info">
+            <strong>${a.nombre}</strong>
+            <div class="meta">Usuario: ${a.usuario}</div>
+          </div>
+          <div style="display:flex; gap:0.4rem; align-items:center;">
+            <select onchange="reasignarAgente('${a.id}', this.value)" style="width:auto; font-size:0.85rem; padding:0.35rem;">
+              <option value="">Sin supervisor</option>
+              ${supervisores.map(s => `<option value="${s.id}" ${a.supervisorId === s.id ? 'selected' : ''}>${s.nombre}</option>`).join('')}
+            </select>
+            <button class="btn chico peligro" onclick="eliminarUsuario('${a.id}')">🗑️</button>
+          </div>
         </div>
       `).join('')}
     </div>
@@ -1082,6 +1152,7 @@ function nuevoSupervisor() {
   if (!nombre) return;
   const usuario = prompt('Usuario (sin espacios):');
   if (!usuario) return;
+  if (DB.usuarios.find(u => u.usuario === usuario)) { alert('Ese usuario ya existe.'); return; }
   const password = prompt('Contraseña:');
   if (!password) return;
   const turno = prompt('Turno (ej: Turno 1, Turno 2):') || '';
@@ -1094,15 +1165,49 @@ function nuevoSupervisor() {
   cambiarTab('supervisores');
 }
 
+function nuevoAgentePrincipal() {
+  const nombre = prompt('Nombre del agente:');
+  if (!nombre) return;
+  const usuario = prompt('Usuario (sin espacios):');
+  if (!usuario) return;
+  if (DB.usuarios.find(u => u.usuario === usuario)) { alert('Ese usuario ya existe.'); return; }
+  const password = prompt('Contraseña:');
+  if (!password) return;
+
+  const supervisores = DB.usuarios.filter(u => u.rol === 'supervisor');
+  let supervisorId = null;
+
+  if (supervisores.length > 0) {
+    const lista = supervisores.map((s, i) => `${i + 1}. ${s.nombre}`).join('\n');
+    const sel = prompt(`Asignar a supervisor (número):\n${lista}\n\n(0 = sin supervisor)`);
+    const idx = parseInt(sel) - 1;
+    if (idx >= 0 && idx < supervisores.length) supervisorId = supervisores[idx].id;
+  }
+
+  DB.usuarios.push({
+    id: 'u' + Date.now(),
+    nombre, usuario, password, rol: 'agente', supervisorId
+  });
+  guardarDB();
+  alert('Agente creado.');
+  cambiarTab('supervisores');
+}
+
+function reasignarAgente(agenteId, supervisorId) {
+  const agente = DB.usuarios.find(u => u.id === agenteId);
+  if (!agente) return;
+  agente.supervisorId = supervisorId || null;
+  guardarDB();
+}
+
 function eliminarUsuario(id) {
   if (!confirm('¿Eliminar este usuario?')) return;
   DB.usuarios = DB.usuarios.filter(u => u.id !== id);
-  // Reasignar agentes huérfanos
   DB.usuarios.forEach(u => {
     if (u.supervisorId === id) u.supervisorId = null;
   });
   guardarDB();
-  cambiarTab('supervisores');
+  cambiarTab(sesion.rol === 'supervisor' ? 'staff' : 'supervisores');
 }
 
 /* ============================================================
